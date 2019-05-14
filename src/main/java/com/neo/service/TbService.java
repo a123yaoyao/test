@@ -199,7 +199,7 @@ public class TbService {
       //  int count = 24116;
 
         //查询被导入数据库的表结构
-        List<Map<String, Object>> tb = selectTableStructureByDbAndTb(dbName, tbName,salverDbUtil);
+        List<Map<String, Object>> tb = selectTableStructureByDbAndTb(tbName,salverDbUtil);
         //该主库是否存在此表
         count = checkTable(tbName,masterDbUtil,null);
         // 查询所有数据
@@ -272,7 +272,7 @@ public class TbService {
         List<Map<String,Object>> tableStructure = null;
         Map<String,Object> param =new HashMap<>();
         //查询被导入数据库的表结构
-        List<Map<String, Object>> tb = selectTableStructureByDbAndTb(dbName, tbName,salverDbUtil);
+        List<Map<String, Object>> tb = selectTableStructureByDbAndTb( tbName,salverDbUtil);
         //该主库是否存在此表
         count = checkTable(tbName,masterDbUtil,null);
 
@@ -281,6 +281,32 @@ public class TbService {
             getCreateTableSql(tbName, tb, param);
             int i =createNewTable(param,masterDbUtil);
 
+        }else{//若存在则比较
+            List<Map<String, Object>> masterTb = selectTableStructureByDbAndTb( tbName,masterDbUtil);
+            String cloumnName ;
+            String dataType ;
+            Object dataLength;
+            for (Map<String, Object> tbMap:tb ) {
+                boolean flag =false;
+                cloumnName =tbMap.get("COLUMN_NAME")+"";
+                dataType = tbMap.get("DATA_TYPE")+"" ;
+                dataLength = tbMap.get("DATA_LENGTH");
+                for (Map<String, Object> masterTbMap:masterTb) {
+                    if (masterTbMap.containsValue(cloumnName)){
+                        flag = true;
+                        break;
+                    }
+                }
+                if (!flag){
+                    String sql = " alter table "+tbName+" add ("+cloumnName+" "+dataType;
+                    if (null!= dataLength){
+                        sql+="("+dataLength+")";
+                    }
+                    sql+=" ) ";
+                    masterDbUtil.executeUpdate(sql,new Object[][]{});
+                    logger.info("为"+dbName+"库添加"+cloumnName+"字段成功！");
+                }
+            }
         }
 
         // 查询所有数据
@@ -303,7 +329,7 @@ public class TbService {
         List<List<Map<String, Object>>> newData = CollectionUtil.splitList(data, cutSize);
 
         //批量删除重复的数据
-        int delCount = batchDelete(paramsMap, tbName, data, masterDbUtil,salverDbUtil);
+      //  int delCount = batchDelete(paramsMap, tbName, data, masterDbUtil,salverDbUtil);
         //判断该表是否使用批处理
         boolean isUseBatch = checTableIsUseBatch(tbName);
 
@@ -516,11 +542,11 @@ public class TbService {
 
     /**
      * 通过库名和表名查询数据库表结构
-     * @param dbName
+     *
      * @param tbName
      * @return
      */
-    private List<Map<String,Object>> selectTableStructureByDbAndTb(String dbName, String tbName, DbUtil dbUtil) throws SQLException {
+    private List<Map<String,Object>> selectTableStructureByDbAndTb( String tbName, DbUtil dbUtil) throws SQLException {
         String sql ="select t.COLUMN_NAME,  t.DATA_TYPE, t.DATA_LENGTH,\n" +
                 "        t.DATA_PRECISION, t.NULLABLE, t.COLUMN_ID, c.COMMENTS,\n" +
                 "                (\n" +
