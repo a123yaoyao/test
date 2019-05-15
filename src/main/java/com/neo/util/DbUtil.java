@@ -62,7 +62,7 @@ public class DbUtil {
                 rowCount=rs.getInt(1);
             }
         }catch (Exception e){
-            e.printStackTrace();
+           // e.printStackTrace();
             logger.error(e.getMessage());
         }
         finally{
@@ -108,11 +108,11 @@ public class DbUtil {
         } catch (SQLException e) {
             logger.error(e.getMessage());
             logger.error(sql);
-        } finally {
+        } /*finally {
             if (null!= rs) rs.close();
             if (null!= pst) pst.close();
             if (null!= conn) conn.close();
-        }
+        }*/
 
         return list;
     }
@@ -160,8 +160,9 @@ public class DbUtil {
 
         try {
             // 获得连接
-            //conn = this.getConnection();
+          //  conn = this.getConnection();
             // 调用SQL
+            conn.setAutoCommit(false);
             pst = conn.prepareStatement(sql);
 
             // 参数赋值
@@ -175,13 +176,13 @@ public class DbUtil {
                                           语句；或者是无返回内容的 SQL 语句，比如 DDL 语句。    */
             // 执行
             affectedLine = pst.executeUpdate();
-
+            conn.commit();
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
-            System.out.println(sql);
-        } finally {
+            logger.error(e.getMessage());
+
+        }/* finally {
                 closeAll();
-        }
+        }*/
         return affectedLine;
     }
 
@@ -274,7 +275,10 @@ public class DbUtil {
                     rows +=  pst.executeUpdate();
                     conn.commit();
                 }catch (Exception e){
-                    logger.error("插入出错 原因为: "+e.getMessage()); //批量插入需要时间:
+                    if (!e.getMessage().contains("ORA-00001: 违反唯一约束条件")){
+                        logger.error(sql.toString(),e);
+                    }
+
                 }
 
             }
@@ -284,11 +288,16 @@ public class DbUtil {
             logger.info("插入了:"+rows+"条数据需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
             return rows;
         } catch (Exception e) {
-            logger.error(sql.toString(),e);
-            e.printStackTrace();
-        }finally {
+            if (!e.getMessage().contains("ORA-00001: 违反唯一约束条件")){
+                logger.error(sql.toString(),e);
+            }
+
+
+
+           // e.printStackTrace();
+        }/*finally {
             closeAll();
-        }
+        }*/
         return 0;
 
     }
@@ -303,7 +312,6 @@ public class DbUtil {
             conn.setAutoCommit(false);
             pst = conn.prepareStatement(sql);
             result =  insertBatch(tbName , newData, pst,tbstruct);
-            //result =  insertBatch1(tbName , newData, pst,tbstruct);
             long end = System.currentTimeMillis();
             logger.info("批量插入了:"+newData.size()+"条数据 需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
             int len= newData.size() ;
@@ -311,10 +319,13 @@ public class DbUtil {
             return len;
         } catch (Exception e) {
            logger.error(sql.toString(),e);
-           e.printStackTrace();
-        }finally {
+           if (e.getMessage().contains("ORA-00001: 违反唯一约束条件")){
+               return odinaryInsert(tbName,newData,tbstruct);
+           }
+
+        }/*finally {
             closeAll();
-        }
+        }*/
         return 0;
 
     }
@@ -376,26 +387,27 @@ public class DbUtil {
                     value =getValueByType(ma,k,dataType);
                 }
                 if (flag)pst.setObject(j+1,dateValue);
-                else pst.setObject(j+1,value);
+                else pst.setString(j+1,value);
                 j++;
             }
             pst.addBatch();
 
             if(i>0 && i%1000==0){
                 ik = pst.executeBatch();
+                conn.commit();
                 //清除批处理命令
                   pst.clearBatch();
                 //如果不想出错后，完全没保留数据，则可以每执行一次提交一次，但得保证数据不会重复
 
-                conn.commit();
+
 
             }
 
 
         }
         ik = pst.executeBatch();
-        pst.clearBatch();
         conn.commit();
+        pst.clearBatch();
         return  ik;
     }
 
@@ -492,10 +504,10 @@ public class DbUtil {
         conn.commit();
             len =  result.length;
         }catch (Exception e){
-            e.printStackTrace();
+          //  e.printStackTrace();
             logger.error(e.getMessage());
         }finally {
-            pst.close();
+           /* pst.close();*/
             return len;
         }
     }

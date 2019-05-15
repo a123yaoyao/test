@@ -141,7 +141,7 @@ public class TbService {
                 return list;
                 }
                 catch (Exception e){
-                    e.printStackTrace();
+                    logger.error(e.getMessage());
                     return new ArrayList<>();
                 }finally {
                     countDownLatch.countDown();
@@ -329,14 +329,13 @@ public class TbService {
         List<List<Map<String, Object>>> newData = CollectionUtil.splitList(data, cutSize);
 
         //批量删除重复的数据
-      //  int delCount = batchDelete(paramsMap, tbName, data, masterDbUtil,salverDbUtil);
+        int delCount = batchDelete(paramsMap, tbName, data, masterDbUtil,salverDbUtil);
         //判断该表是否使用批处理
         boolean isUseBatch = checTableIsUseBatch(tbName);
 
         if (threads == 1 ){ //不开启多线程
             for (List<Map<String, Object>> dat : newData) {
-                insertCount += masterDbUtil.insert(tbName,dat,tb,isUseBatch);
-                        //batchInsertJsonArry(tbName,dat,tb);
+                insertCount += masterDbUtil.batchInsertJsonArry(tbName,dat,tb);
             }
         }else{
             final BlockingQueue<Future<Integer>> queue = new LinkedBlockingQueue<>();
@@ -458,19 +457,6 @@ public class TbService {
             }
         }
         if (null!= list)return list;
-   /*     String sql ="select cu.*,au.* from user_cons_columns cu, user_constraints au where cu.constraint_name=au.constraint_name and\n" +
-                " cu.table_name='"+tbName+"'"+" and constraint_type = 'P' " ;
-        list = salverDbUtil.excuteQuery(sql, new Object[][]{});
-
-        if (list.size()==0){
-            sql = "select t.*,i.index_type from user_ind_columns t,user_indexes i where t.index_name = i.index_name and\n" +
-                    "\n" +
-                    "t.table_name='"+tbName+"' \n" +
-                    "and i.index_name in (\n" +
-                    "select index_name from user_indexes where uniqueness='UNIQUE' and table_name='"+tbName+"'\n" +
-                    ")";
-            list = salverDbUtil.excuteQuery(sql, new Object[][]{});
-        }*/
         if (null == list){//判断该表是否存在eaf_Id
           int i =  checkTable(  tbName, salverDbUtil,"EAF_ID");
             list =new ArrayList<>();

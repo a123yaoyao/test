@@ -69,16 +69,15 @@ public class JDBCUtil {
             try {
                 Class.forName(driver);
             } catch (ClassNotFoundException e) {
-                System.out.println("加载驱动错误");
-                System.out.println(e.getMessage());
-                e.printStackTrace();
+                logger.error("加载驱动错误"+e.getMessage());
+
+
             }
             // 获取连接
             conn = DriverManager.getConnection(url, username,
                     password);
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
-
+            logger.error(e.getMessage());
         }
         return conn;
     }
@@ -158,7 +157,7 @@ public class JDBCUtil {
             rst = pst.executeQuery();
 
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+          logger.error(e.getMessage());
 
         }
 
@@ -260,9 +259,10 @@ public class JDBCUtil {
      * @return List
      *                       结果集
      */
-    public Map<String,Object> excuteQueryWithMuliResult(String sql, Object[] params) {
+    public Map<String,Object> excuteQueryWithMuliResult(String tbName,String sql, Object[] params) {
         Map<String,Object> resutltMap =new HashMap<>();
         Map<String,Object> clumn2Type =new HashMap<>();
+        List<String> sqlList =new ArrayList<>();
         // 执行SQL获得结果集
         ResultSet rs = executeQueryRS(sql, params);
 
@@ -289,13 +289,32 @@ public class JDBCUtil {
             while (rs.next()) {
                 k++;
                 Map<String, Object> map = new HashMap<String, Object>();
+               /* StringBuilder updateSql = new StringBuilder(" insert into " + tbName + " (");
+                StringBuilder partSql = new StringBuilder(" (");*/
                 for (int i = 1; i <= columnCount; i++) {
                     if (k==1 && !"RN".equals(rsmd.getColumnLabel(i))){
                         clumn2Type.put(rsmd.getColumnLabel(i),rsmd.getColumnTypeName(i));
                     }
                     if ("RN".equals(rsmd.getColumnLabel(i))) continue;
+                    /*updateSql.append(rsmd.getColumnLabel(i)).append(",");
+                    if (rs.getObject(i) == null){
+                        partSql.append(""+null+",");  continue;
+                    }*/
+                  /*  switch (rsmd.getColumnTypeName(i)){
+                        case "DATE" :partSql.append("to_char("+rs.getDate(i)+",'yyyy-mm-dd hh24:mi:ss'),");  break;
+                        case "BLOB" :partSql.append("'"+StringUtils.BlobToString(rs.getBlob(i))+"',");  break;
+                        case "CLOB" :partSql.append("to_char("+StringUtils.ClobToString(rs.getClob(i))+"',");  break;
+                        default:partSql.append("'"+rs.getObject(i)+"',"); ; break;
+                    }*/
+
                     map.put(rsmd.getColumnLabel(i), rs.getObject(i));
                 }
+                   /* updateSql.deleteCharAt(updateSql.length() - 1);
+                    partSql.deleteCharAt(updateSql.length() - 1);
+                    updateSql.append(") values ");
+                    partSql.append(") ");
+                    updateSql.append(partSql);
+                    sqlList.add(updateSql.toString());*/
                 list.add(map);//每一个map代表一条记录，把所有记录存在list中
             }
         } catch (SQLException e) {
@@ -307,6 +326,7 @@ public class JDBCUtil {
         }
         resutltMap.put("list",list);
         resutltMap.put("columnType",clumn2Type);
+        resutltMap.put("sqlList",sqlList);
         return resutltMap;
     }
 
@@ -435,7 +455,7 @@ public class JDBCUtil {
              len= newData.size() ;
             return len;
         } catch (Exception e) {
-           logger.error(sql.toString(),e);
+           logger.error(sql.toString()+" "+e.getMessage());
 
             logger.info("批处理失败 开始一条一条插入.........");
             //e.printStackTrace();
@@ -484,15 +504,7 @@ public class JDBCUtil {
              j=0;
             for (String k:ma.keySet()) {
                 j++;
-                value =ma.get(k)+"";
-                if ("null".equals(value.trim())) value =null;
-                flag =false;
-                dataType = structureMap.get(k)+"";
-                if ( ("DATE".equals(dataType)  && value !=null )){
-                    if (flag)pst.setObject(j,"to_char("+value+",'yyyy-mm-dd hh24:mi:ss')");
-                }
-                else pst.setObject(j,value);
-
+                pst.setObject(j,ma.get(k));
             }
             pst.addBatch();
 
@@ -510,13 +522,92 @@ public class JDBCUtil {
         return  ik;
     }
 
+    /**
+     * 批量删除
+     * @param data
+     * @param uniqueList
+     * @param tbName
+     * @return
+     * @throws Exception
+     */
+    public int batchDelete(List<Map<String, Object>> data, List<Map<String, Object>> uniqueList, String tbName) throws Exception {
+        int len =0;
+        try{
+            String sql = " DELETE  FROM   " + tbName + " where 1=1 ";
+
+            int[] result = null;//批量插入返回的数组
+            //  String columnName = null;//列名
+            //PreparedStatement pst = null;
+            boolean isNeedDel = true;
+
+            if (uniqueList.size() ==0 && (!tbName.startsWith("EAF_")&&!tbName.startsWith("BIM_"))) return 0;
+            if (uniqueList.size() ==0 && (tbName.startsWith("EAF_")||tbName.startsWith("BIM_"))) throw new Exception(tbName+"缺少唯一键,请在资源文件中配置");
+
+            List<String> columnNames ;
+            if (uniqueList.size() == 1) {
+                boolean flag =null != ((uniqueList.get(0).get("IS_NEED_DEL")) );
+                columnNames =  (List<String>)uniqueList.get(0).get("COLUMN_NAME");
+                if (flag ){
+                    isNeedDel = (Boolean) uniqueList.get(0).get("IS_NEED_DEL") ;
+                }
+                if (!isNeedDel) return 0;
+                for (String columnName:  columnNames) {
+                    sql += " and " + columnName + " =  ? ";
+                }
+
+                pst = conn.prepareStatement(sql);
+                int m ;
+                for (Map<String, Object> map : data) {
+                    m=0;
+                    for (String columnName:  columnNames) {
+                        m++;
+                        pst.setObject(m, map.get(columnName) );
+                    }
+
+                    pst.addBatch();
+                }
+                result = pst.executeBatch();
+                conn.commit();
+                return result.length;
+            } else if ((uniqueList.size() > 1)) {
+                //sql 预编译
+                String columnName = null;//列名
+                int k = 0;
+                String[] arr = new String[uniqueList.size()];
+                for (Map<String, Object> uniqueMap : uniqueList) {
+                    columnName = uniqueMap.get("COLUMN_NAME") + "";
+                    sql += " and " + columnName + " =  ? ";
+                    arr[k] = columnName;
+                    k++;
+                }
+                pst = conn.prepareStatement(sql);
+                //批量处理
+                for (Map<String, Object> map : data) {
+                    for (int i = 0; i < arr.length; i++) {
+                        pst.setObject(i + 1, map.get(arr[i]) + "");
+                    }
+                    pst.addBatch();
+                }
+                result = pst.executeBatch();
+            }
+            conn.commit();
+            len =  result.length;
+        }catch (Exception e){
+
+            logger.error(e.getMessage());
+        }finally {
+            closeAll();
+            return len;
+        }
+    }
+
     private int odinaryInsert(String tbName, List<Map<String,Object>> dat, Map<String,Object> tbstruct) {
         long start = System.currentTimeMillis();
-        String  sql= sql =  getInsertSql( tbName,  dat);;
+        String  sql= sql =  getInsertSql( tbName,  dat);
         int[] result= null;
         PreparedStatement pst = null;
         Map<String,Object> ma;
-        String value ;
+        Object value ;
         boolean flag;
         String cloumnName;
         String dataType;
@@ -531,26 +622,17 @@ public class JDBCUtil {
                 int j=0;
                 for (String k:ma.keySet()) {
                     j++;
-                    value =ma.get(k)+"";
-                    if ("null".equals(value.trim())) value =null;
-                    flag =false;
-
-                        dataType =tbstruct.get(k)+"";
-                        if (  ("DATE".equals(dataType)  && value !=null )){
-                            pst.setObject(j,"to_char("+value+",'yyyy-mm-dd hh24:mi:ss')");
-                        }
-                        if (("CLOB".equals(dataType) ||"BLOB".equals(dataType)) && value !=null){
-                            pst.setObject(j,value);
-                        }else{
-                            pst.setObject(j,value);
-                        }
-
+                    value =ma.get(k);
+                    pst.setObject(j,value);
                 }
                 try {
                     rows +=  pst.executeUpdate();
                     conn.commit();
                 }catch (Exception e){
-                    logger.error("插入出错 原因为: "+e.getMessage()); //批量插入需要时间:
+                    if (!e.getMessage().contains("ORA-00001")){
+                        logger.error("插入出错 原因为: "+e.getMessage()); //批量插入需要时间:
+                    }
+
                 }
 
             }
@@ -591,5 +673,16 @@ public class JDBCUtil {
     }
 
 
+    public ResultSet executeQueryRS(String querySql) {
+        ResultSet rs = null;
+        try{
+            rs =  executeQueryRS(querySql, new Object[][]{});
+        }catch (Exception e){
+            logger.error(e.getMessage());
+        }finally {
+            closeAll();
+        }
+         return rs ;
+    }
 }
 

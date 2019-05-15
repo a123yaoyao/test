@@ -100,11 +100,37 @@ public class TableService {
         int nums = getGroupSize(count);
         int insertCount =0;
         //查询被导入数据库的表结构
-        List<Map<String, Object>> tb = selectTableStructureByDbAndTb(dbName, tbName,salverDbUtil);
+        List<Map<String, Object>> tb = selectTableStructureByDbAndTb( tbName,salverDbUtil);
         //该主库是否存在此表
         count = checkTable(tbName,null);
         if (0 == count) {//若不存在则主数据源创建新表
             int i = createNewTable(master,salverDbUtil ,tbName, tbName);
+        }else{//若存在则比较
+            List<Map<String, Object>> masterTb = selectTableStructureByDbAndTb( tbName,master);
+            String cloumnName ;
+            String dataType ;
+            Object dataLength;
+            for (Map<String, Object> tbMap:tb ) {
+                boolean flag =false;
+                cloumnName =tbMap.get("COLUMN_NAME")+"";
+                dataType = tbMap.get("DATA_TYPE")+"" ;
+                dataLength = tbMap.get("DATA_LENGTH");
+                for (Map<String, Object> masterTbMap:masterTb) {
+                    if (masterTbMap.containsValue(cloumnName)){
+                        flag = true;
+                        break;
+                    }
+                }
+                if (!flag){
+                    String sql = " alter table "+tbName+" add ("+cloumnName+" "+dataType;
+                    if (null!= dataLength){
+                        sql+="("+dataLength+")";
+                    }
+                    sql+=" ) ";
+                    master.executeUpdate(sql,new Object[][]{});
+                    logger.info("为"+dbName+"库添加"+cloumnName+"字段成功！");
+                }
+            }
         }
 
         final CountDownLatch  endLock = new CountDownLatch(thrednum); //结束门
@@ -114,7 +140,7 @@ public class TableService {
         for (int i = 0; i <thrednum ; i++) {
             int startIndex = i * nums;
             int maxIndex = startIndex + nums;
-            Future<Integer> future = service.submit(new SyncTask(i, nums,masterDataSource,dbName,tbName,endLock,startIndex,maxIndex));
+            Future<Integer> future = service.submit(new SyncTask(i, nums,masterDataSource,dbName,tbName,endLock,startIndex,maxIndex,uniqueConstraint));
             queue.add(future);
         }
         endLock.await(); //主线程阻塞，直到所有线程执行完成
@@ -156,9 +182,7 @@ public class TableService {
        return   master.executeUpdate(sql,new Object[][]{});
     }
 
-    private void getCreateTableSql(String tbName,JDBCUtil until) throws IOException, SQLException {
 
-    }
 
     private int checkTable(String tbName,String Column) {
         JDBCUtil master = new JDBCUtil(masterDataSource);
@@ -174,7 +198,7 @@ public class TableService {
         else return 0;
     }
 
-    private List<Map<String,Object>> selectTableStructureByDbAndTb(String dbName, String tbName, JDBCUtil util) {
+    private List<Map<String,Object>> selectTableStructureByDbAndTb( String tbName, JDBCUtil util) {
         String sql ="select t.COLUMN_NAME,  t.DATA_TYPE, t.DATA_LENGTH,\n" +
                 "        t.DATA_PRECISION, t.NULLABLE, t.COLUMN_ID, c.COMMENTS,\n" +
                 "                (\n" +

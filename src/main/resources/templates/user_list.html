@@ -23,9 +23,27 @@ textField:'text',onChange:uie_dgd_search" id="db">
 </table>
 <div id="weektb"/>
 
-<div id="w" class="easyui-window" title="Modal Window" data-options="modal:true,closed:true,iconCls:'icon-save'" style="width:500px;height:200px;padding:10px;">
-    The window content.
+<div id="win" class="easyui-dialog" title="Login"  closed="true" style="width:300px;height:180px;" data-options="iconCls:'icon-save',resizable:true,modal:true">
+
+    <form style="padding:10px 20px 10px 40px;">
+
+        <p>ID: <input id="win_id" style="line-height:26px;border:1px solid #ccc"></p>
+
+        <p>NAME: <input id="win_name" style="line-height:26px;border:1px solid #ccc"></p>
+
+        <div style="padding:5px;text-align:center;">
+
+            <a href="#" class="easyui-linkbutton" onclick="doOk()">Ok</a>
+
+            <a href="#" class="easyui-linkbutton" onclick="doCancel()">Cancel</a>
+
+        </div>
+
+    </form>
+
 </div>
+
+
 
 </body>
 <script>
@@ -34,6 +52,8 @@ textField:'text',onChange:uie_dgd_search" id="db">
         getAllDb();
         //初始化列表
         page_init();
+        $('#win').show();
+        $('#win').dialog('refresh','xxxxxxxxxxxxxx');
     });
 
     function merge() {
