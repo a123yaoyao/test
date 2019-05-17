@@ -26,6 +26,10 @@ import java.util.Map;
  */
 public class StringUtils {
 
+    public static void main(String[] args) {
+
+    }
+
 
     // Clob类型 转String
     public static String ClobToString(Clob clob)  {

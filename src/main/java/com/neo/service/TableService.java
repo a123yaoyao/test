@@ -128,7 +128,7 @@ public class TableService {
                     }
                     sql+=" ) ";
                     master.executeUpdate(sql,new Object[][]{});
-                    logger.info("为"+dbName+"库添加"+cloumnName+"字段成功！");
+                    logger.info("为"+masterDataSource+"库添加"+cloumnName+"字段成功！");
                 }
             }
         }

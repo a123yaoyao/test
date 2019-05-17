@@ -276,7 +276,7 @@ public class DbUtil {
                     conn.commit();
                 }catch (Exception e){
                     if (!e.getMessage().contains("ORA-00001: 违反唯一约束条件")){
-                        logger.error(sql.toString(),e);
+                        logger.error(sql.toString()+e.getMessage());
                     }
 
                 }
@@ -288,8 +288,8 @@ public class DbUtil {
             logger.info("插入了:"+rows+"条数据需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
             return rows;
         } catch (Exception e) {
-            if (!e.getMessage().contains("ORA-00001: 违反唯一约束条件")){
-                logger.error(sql.toString(),e);
+            if (!e.getMessage().contains("ORA-00001")){
+                logger.error(sql.toString()+e.getMessage());
             }
 
 
@@ -318,8 +318,8 @@ public class DbUtil {
             newData =null;
             return len;
         } catch (Exception e) {
-           logger.error(sql.toString(),e);
-           if (e.getMessage().contains("ORA-00001: 违反唯一约束条件")){
+           logger.error(sql.toString()+e.getMessage());
+           if (e.getMessage().contains("ORA-00001")){
                return odinaryInsert(tbName,newData,tbstruct);
            }
 
@@ -451,9 +451,9 @@ public class DbUtil {
       //  String columnName = null;//列名
         PreparedStatement pst = null;
         boolean isNeedDel = true;
-
-        if (uniqueList.size() ==0 && (!tbName.startsWith("EAF_")&&!tbName.startsWith("BIM_"))) return 0;
-        if (uniqueList.size() ==0 && (tbName.startsWith("EAF_")||tbName.startsWith("BIM_"))) throw new Exception(tbName+"缺少唯一键,请在资源文件中配置");
+        if (uniqueList.size() ==0) return 0;
+       // if (uniqueList.size() ==0 && (!tbName.startsWith("EAF_")&&!tbName.startsWith("BIM_"))) return 0;
+       // if (uniqueList.size() ==0 && (tbName.startsWith("EAF_")||tbName.startsWith("BIM_"))) throw new Exception(tbName+"缺少唯一键,请在资源文件中配置");
 
         List<String> columnNames ;
         if (uniqueList.size() == 1) {

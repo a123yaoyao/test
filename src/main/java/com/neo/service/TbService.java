@@ -330,6 +330,7 @@ public class TbService {
 
         //批量删除重复的数据
         int delCount = batchDelete(paramsMap, tbName, data, masterDbUtil,salverDbUtil);
+        logger.info("删除了"+delCount+"条数据");
         //判断该表是否使用批处理
         boolean isUseBatch = checTableIsUseBatch(tbName);
 
