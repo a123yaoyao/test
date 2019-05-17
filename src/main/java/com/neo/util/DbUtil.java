@@ -274,7 +274,9 @@ public class DbUtil {
                 try {
                     rows +=  pst.executeUpdate();
                     conn.commit();
+                    logger.info("插入第"+(i+1)+"条数据成功");
                 }catch (Exception e){
+                    logger.info(""+tbName+"表插入第"+(i+1)+"条数据失败原因为 ："+e.getMessage()+" EAF_ID为"+ma.get("EAF_ID"));
                     if (!e.getMessage().contains("ORA-00001: 违反唯一约束条件")){
                         logger.error(sql.toString()+e.getMessage());
                     }
@@ -319,7 +321,10 @@ public class DbUtil {
             return len;
         } catch (Exception e) {
            logger.error(sql.toString()+e.getMessage());
+
            if (e.getMessage().contains("ORA-00001")){
+               System.out.println("开始单条插入......................................................................................");
+              // logger.info("开始单条插入................");
                return odinaryInsert(tbName,newData,tbstruct);
            }
 
@@ -444,21 +449,20 @@ public class DbUtil {
      */
     public int batchDelete(List<Map<String, Object>> data, List<Map<String, Object>> uniqueList, String tbName) throws Exception {
         int len =0;
+
         try{
         String sql = " DELETE  FROM   " + tbName + " where 1=1 ";
 
         int[] result = null;//批量插入返回的数组
-      //  String columnName = null;//列名
+
         PreparedStatement pst = null;
         boolean isNeedDel = true;
         if (uniqueList.size() ==0) return 0;
-       // if (uniqueList.size() ==0 && (!tbName.startsWith("EAF_")&&!tbName.startsWith("BIM_"))) return 0;
-       // if (uniqueList.size() ==0 && (tbName.startsWith("EAF_")||tbName.startsWith("BIM_"))) throw new Exception(tbName+"缺少唯一键,请在资源文件中配置");
 
         List<String> columnNames ;
         if (uniqueList.size() == 1) {
             boolean flag =null != ((uniqueList.get(0).get("IS_NEED_DEL")) );
-            //columnName = uniqueList.get(0).get("COLUMN_NAME") + "";
+
             columnNames =  (List<String>)uniqueList.get(0).get("COLUMN_NAME");
             if (flag ){
                 isNeedDel = (Boolean) uniqueList.get(0).get("IS_NEED_DEL") ;
@@ -501,13 +505,14 @@ public class DbUtil {
             }
             result = pst.executeBatch();
         }
-        conn.commit();
+            conn.commit();
             len =  result.length;
         }catch (Exception e){
-          //  e.printStackTrace();
-            logger.error(e.getMessage());
+
+            logger.error("删除失败"+e.getMessage());
         }finally {
            /* pst.close();*/
+           logger.info("删除"+tbName +"表 "+len+"条数据成功！");
             return len;
         }
     }

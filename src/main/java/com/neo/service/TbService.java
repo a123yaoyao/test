@@ -330,7 +330,11 @@ public class TbService {
 
         //批量删除重复的数据
         int delCount = batchDelete(paramsMap, tbName, data, masterDbUtil,salverDbUtil);
-        logger.info("删除了"+delCount+"条数据");
+        //如果他是属性表还需要特殊删除一个关联表
+        if (tbName.equals("EAF_DMM_METAATTR_L")||tbName.equals("EAF_DMM_METAATTR_M")){
+            specialDel(tbName,data,masterDbUtil);
+        }
+
         //判断该表是否使用批处理
         boolean isUseBatch = checTableIsUseBatch(tbName);
 
@@ -350,8 +354,8 @@ public class TbService {
                     public Integer call() {
                         try {
 
-                            return  masterDbUtil. insert(tbName,dat,tb,isUseBatch);
-                                    //masterDbUtil. batchInsertJsonArry(tbName,dat,tb);
+                            return //masterDbUtil. insert(tbName,dat,tb,isUseBatch);
+                                    masterDbUtil. batchInsertJsonArry(tbName,dat,tb);
                         }catch(Exception e) {
                             logger.error("数据同步 exception!",e);
                             return 0;
@@ -370,6 +374,27 @@ public class TbService {
 
 
         return insertCount;
+    }
+
+    private int specialDel(String tbName, List<Map<String, Object>> data, DbUtil masterDbUtil) throws Exception {
+        List<Map<String, Object>>  list = new ArrayList<>();
+        Map<String,Object> map =new HashMap<>();
+        List<String> columns = new ArrayList<>();
+        columns.add("EAF_ID");
+        map.put("COLUMN_NAME",columns);
+        map.put("IS_NEED_DEL",true);
+        list.add(map);
+        if (tbName.equals("EAF_DMM_METAATTR_L")){
+
+            return masterDbUtil.batchDelete(data, list, "EAF_DMM_METAATTR_M");
+        }
+        if (tbName.equals("EAF_DMM_METAATTR_M")){
+            return masterDbUtil.batchDelete(data, list, "EAF_DMM_METAATTR_L");
+        }else{
+            throw new Exception("未知的 错误 表名既不是 EAF_DMM_METAATTR_L 也不是 EAF_DMM_METAATTR_M ");
+        }
+
+
     }
 
     private boolean checTableIsUseBatch(String tbName) {
@@ -401,6 +426,7 @@ public class TbService {
      * @throws Exception
      */
     private int batchDelete(Map<String, Object> paramsMap, String tbName, List<Map<String, Object>> data, DbUtil masterDbUtil,DbUtil salverDbUtil) throws Exception {
+
         //获得列表中的唯一键
         List<Map<String, Object>> uniqueList = getUniqueConstriant(paramsMap, masterDbUtil,salverDbUtil);
         //批量删除重复数据
