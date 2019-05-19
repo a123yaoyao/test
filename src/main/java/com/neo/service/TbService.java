@@ -331,9 +331,9 @@ public class TbService {
         //批量删除重复的数据
         int delCount = batchDelete(paramsMap, tbName, data, masterDbUtil,salverDbUtil);
         //如果他是属性表还需要特殊删除一个关联表
-        if (tbName.equals("EAF_DMM_METAATTR_L")||tbName.equals("EAF_DMM_METAATTR_M")){
+        /*if (tbName.equals("EAF_DMM_METAATTR_L")||tbName.equals("EAF_DMM_METAATTR_M")){
             specialDel(tbName,data,masterDbUtil);
-        }
+        }*/
 
         //判断该表是否使用批处理
         boolean isUseBatch = checTableIsUseBatch(tbName);
@@ -372,7 +372,9 @@ public class TbService {
             exec.shutdown(); //关闭线程池
         }
 
-
+        if (tbName.equals("EAF_DMM_METAATTR_L") || tbName.equals("EAF_DMM_METACLASS_L")){
+            masterDbUtil.executeUpdate("delete from "+tbName+" where eaf_lid is null or eaf_lid !='6BEB598696F4116772AF9E03EFC7E962' ",new Object[][]{});
+        }
         return insertCount;
     }
 
