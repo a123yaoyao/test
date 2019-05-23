@@ -8,6 +8,17 @@
     <script type="text/javascript" src="../jquery-easyui-1.7.0/jquery.easyui.min.js"></script>
     <script type="text/javascript" src="../jquery-easyui-1.7.0/locale/easyui-lang-zh_CN.js"></script>
 </head>
+<style type="text/css">
+    .but{
+        width: 68px;
+        height: 30px;
+        border: none;
+        color: white;
+        cursor: pointer;
+        background-color: cornflowerblue;
+        border-radius: 5px;
+    }
+</style>
 <body>
 <select class="easyui-combobox" panelHeight="auto" style="width:200px" data-options="valueField:'id',
 textField:'text',onChange:uie_dgd_search" id="db">
@@ -17,7 +28,7 @@ textField:'text',onChange:uie_dgd_search" id="db">
 </select>
 <a href="#" class="easyui-linkbutton" onclick="uie_dgd_search();">查询</a>
 <!--<a href="#" class="easyui-linkbutton" onclick="merge();">合并</a>-->
-<button  id="me" onclick="merge()" type="button" >合并</button>
+<button  id="me" onclick="merge()" type="button" class=" but" >合并</button>
 
 <table id="dataTable"  style="width:98%;height:98%">
 </table>
@@ -151,7 +162,11 @@ textField:'text',onChange:uie_dgd_search" id="db">
         }
         if (dbName == masterDb){
             $('#me').attr('disabled',"true");
-        }else  $('#me').removeAttr("disabled");
+            $('#me').css("background-color","gainsboro");
+        }else{
+            $('#me').removeAttr("disabled");
+            $('#me').css("background-color","cornflowerblue");
+        }
 
 
         $('#dataTable').datagrid('reload', {

@@ -276,6 +276,7 @@ public class TbService {
         //该主库是否存在此表
         count = checkTable(tbName,masterDbUtil,null);
 
+        String addColumns = ""; //增加的列
 
         if (0 == count) {//若不存在则主数据源创建新表
             getCreateTableSql(tbName, tb, param);
@@ -298,6 +299,7 @@ public class TbService {
                     }
                 }
                 if (!flag){
+                    addColumns +=cloumnName+",";
                     String sql = " alter table "+tbName+" add ("+cloumnName+" "+dataType;
                     if (null!= dataLength){
                         sql+="("+dataLength+")";
@@ -330,10 +332,6 @@ public class TbService {
 
         //批量删除重复的数据
         int delCount = batchDelete(paramsMap, tbName, data, masterDbUtil,salverDbUtil);
-        //如果他是属性表还需要特殊删除一个关联表
-        /*if (tbName.equals("EAF_DMM_METAATTR_L")||tbName.equals("EAF_DMM_METAATTR_M")){
-            specialDel(tbName,data,masterDbUtil);
-        }*/
 
         //判断该表是否使用批处理
         boolean isUseBatch = checTableIsUseBatch(tbName);
@@ -374,6 +372,16 @@ public class TbService {
 
         if (tbName.equals("EAF_DMM_METAATTR_L") || tbName.equals("EAF_DMM_METACLASS_L")){
             masterDbUtil.executeUpdate("delete from "+tbName+" where eaf_lid is null or eaf_lid !='6BEB598696F4116772AF9E03EFC7E962' ",new Object[][]{});
+        }
+        if (tbName.equals("EAF_ACM_ONLINE") ){
+            masterDbUtil.executeUpdate("update eaf_acm_online l set l.eaf_contexlid='6BEB598696F4116772AF9E03EFC7E962' ",new Object[][]{});
+            masterDbUtil.executeUpdate("alter table EAF_ACM_ONLINE modify eaf_contexlid default '6BEB598696F4116772AF9E03EFC7E962'",new Object[][]{});
+        }
+        if (tbName.equals("EAF_DMM_METAATTR_M")){
+            String[] arrColumns = addColumns.split(",");
+            for (int i = 0; i <arrColumns.length ; i++) {
+                masterDbUtil.executeUpdate(" alter TABLE  "+tbName+" drop column  "+arrColumns[i],new Object[][]{});
+            }
         }
         return insertCount;
     }
