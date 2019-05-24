@@ -37,6 +37,7 @@
 
 </style>
 <body>
+<!--模态窗口-->
 <div class="am-popup" id="your-modal">
     <div class="am-popup-inner">
         <div class="am-popup-hd">
@@ -49,19 +50,15 @@
         </div>
     </div>
 </div>
-
-
+<!--工具栏-->
 <select class="easyui-combobox" panelHeight="auto" style="width:200px" data-options="valueField:'id',
 textField:'text',onChange:uie_dgd_search" id="db">
 </select>
-
 <input class="easyui-textbox" panelHeight="auto" style="width:200px" id="tbb"   >
 </input>
 <a href="#" class="easyui-linkbutton comm_but " onclick="uie_dgd_search();">查询</a>
 <button  id="me" onclick="merge()" type="button" class=" but" >合并</button>
-
-
-
+<!--列表-->
 <table id="dataTable"  style="width:98%;height:98%">
 </table>
 
@@ -201,7 +198,7 @@ textField:'text',onChange:uie_dgd_search" id="db">
             remoteSort:true,
             border : false,
             columns:[[
-                { field:'ck',checkbox:true },
+                { field:'ck',title:'序号',checkbox:true },
                 {field:'TABLE_NAME',title:'表名',width:350},
                 {field:'NUM_ROWS',title:'行数',width:300,sortable:true},
                 {field:'NUM_COLUMNS',title:'列数',width:310,sortable:true}
