@@ -1,14 +1,24 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>用户列表</title>
+    <title>数据库表信息</title>
+    <link rel="icon" type="image/png" href="../i/favicon.png">
     <link rel="stylesheet" type="text/css" href="../jquery-easyui-1.7.0/themes/default/easyui.css">
     <link rel="stylesheet" type="text/css" href="../jquery-easyui-1.7.0/themes/icon.css">
+    <link rel="stylesheet" href="../css/amazeui.min.css"/>
+    <link rel="stylesheet" href="../css/admin.css">
+    <link rel="stylesheet" href="../tree-master/dist/amazeui.tree.css"/>
     <script type="text/javascript" src="../jquery-easyui-1.7.0/jquery.min.js"></script>
     <script type="text/javascript" src="../jquery-easyui-1.7.0/jquery.easyui.min.js"></script>
     <script type="text/javascript" src="../jquery-easyui-1.7.0/locale/easyui-lang-zh_CN.js"></script>
+    <script src="../js/amazeui.js"></script>
+    <script src="../js/app.js"></script>
 </head>
 <style type="text/css">
+    .comm_but {
+        width: 68px;
+        height: 30px;
+    }
     .but{
         width: 68px;
         height: 30px;
@@ -19,17 +29,35 @@
         border-radius: 5px;
     }
 
+    .datagrid-header-row td{
+        height: 40px; color: rgb(91, 109, 124);font-weight: bold;text-align: center;
+    }
+
 
 
 </style>
 <body>
+<div class="am-popup" id="your-modal">
+    <div class="am-popup-inner">
+        <div class="am-popup-hd">
+            <h4 class="am-popup-title">返回信息</h4>
+            <span data-am-modal-close
+                  class="am-close">&times;</span>
+        </div>
+        <div class="am-popup-bd" id="return_message">
+            二人message
+        </div>
+    </div>
+</div>
+
+
 <select class="easyui-combobox" panelHeight="auto" style="width:200px" data-options="valueField:'id',
 textField:'text',onChange:uie_dgd_search" id="db">
 </select>
 
-<input class="easyui-textbox" panelHeight="auto" style="width:200px" id="tbb"  placeholder="请输入表名" >
+<input class="easyui-textbox" panelHeight="auto" style="width:200px" id="tbb"   >
 </input>
-<a href="#" class="easyui-linkbutton" onclick="uie_dgd_search();">查询</a>
+<a href="#" class="easyui-linkbutton comm_but " onclick="uie_dgd_search();">查询</a>
 <button  id="me" onclick="merge()" type="button" class=" but" >合并</button>
 
 
@@ -49,7 +77,6 @@ textField:'text',onChange:uie_dgd_search" id="db">
         getAllDb();
         //初始化列表
         page_init();
-
     });
 
     function merge() {
@@ -78,13 +105,18 @@ textField:'text',onChange:uie_dgd_search" id="db">
                 }
                 var list = data.list;
 
-                var html ='';
+                var html ='<table><th>序号</th><th>表名</th><th>信息</th>';
                 for(var i=0;i<list.length;i++){
-                    html +='序号'+i+'： '+list[i].TABLE_NAME+'成功同步'+list[i].INSERT_COUNT+'条数据   ';
+                    html +='<tr><td>'+i+1+'</td><td>'+list[i].TABLE_NAME+'</td><td>成功同步'+list[i].INSERT_COUNT+'条数据</td></tr>';
                 }
+                html +="</table>"
+                //alert(html);
+                $('#return_message').html('');
+                $('#return_message').append(html);
+                $('#your-modal').modal({
+                    relatedTarget: this
 
-                alert(html);
-
+                });
             },
             error:function(data){
 
@@ -94,13 +126,11 @@ textField:'text',onChange:uie_dgd_search" id="db">
     }
 
     var dbs ;
-
     function getAllDb() {
         $.ajax({
             url:'../getAllByDB',
             type: 'POST',
             dataType:'json',
-
             success:function(data){
                 if(data.err){
                     alert(data.content) ;
@@ -131,12 +161,9 @@ textField:'text',onChange:uie_dgd_search" id="db">
     };
 
     function uie_dgd_search() {
-
         var dbName =$('#db').combobox("getValue");
         var tbName = $('#tbb').textbox("getValue");
-
         var masterDb;
-
         for (var i=0; i<dbs.length;i++){
             if (dbs[i].IS_MASTER == 1 ){
                 masterDb = dbs[i].id;
@@ -149,8 +176,6 @@ textField:'text',onChange:uie_dgd_search" id="db">
             $('#me').removeAttr("disabled");
             $('#me').css("background-color","cornflowerblue");
         }
-
-
         $('#dataTable').datagrid('reload', {
             'dbName': dbName,
             'tbName': tbName,
