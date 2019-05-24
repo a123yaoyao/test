@@ -30,8 +30,9 @@
     }
 
     .datagrid-header-row td{
-        height: 40px; color: rgb(91, 109, 124);font-weight: bold;text-align: center;
-        border-right:0px;
+        height: 40px; color: #5B6D7C;font-weight: bold;text-align: center;
+        border-right:0px;border-top:3px;
+
     }
 
     .datagrid-body td,.datagrid-footer td{
@@ -58,7 +59,7 @@
     </div>
 </div>
 <!--工具栏-->
-<div style="padding:10px 5px 15px 20px;">
+<!--<div style="padding:10px 5px 15px 20px;">-->
 <span style="margin-left: 15px;">库名：</span><select class="easyui-combobox" panelHeight="auto" style="width:200px" data-options="valueField:'id',
 textField:'text',onChange:uie_dgd_search" id="db">
 </select>
@@ -67,11 +68,11 @@ textField:'text',onChange:uie_dgd_search" id="db">
 </input>
 <a href="#" class="easyui-linkbutton comm_but " onclick="uie_dgd_search();">查询</a>
 <button  id="me" onclick="merge()" type="button" class=" but" >合并</button>
-</div>
-<!--列表-->
-<table id="dataTable"  style="width:98%;height:98%">
-</table>
 
+<!--列表-->
+<table id="dataTable"  style="margin-top:3px;width:98%;height:98%">
+</table>
+<!--</div>-->
 
 
 
