@@ -18,41 +18,27 @@
         background-color: cornflowerblue;
         border-radius: 5px;
     }
+
+
+
 </style>
 <body>
 <select class="easyui-combobox" panelHeight="auto" style="width:200px" data-options="valueField:'id',
 textField:'text',onChange:uie_dgd_search" id="db">
 </select>
 
-<select class="easyui-textbox" panelHeight="auto" style="width:200px" id="tbb"  >
-</select>
+<input class="easyui-textbox" panelHeight="auto" style="width:200px" id="tbb"  placeholder="请输入表名" >
+</input>
 <a href="#" class="easyui-linkbutton" onclick="uie_dgd_search();">查询</a>
-<!--<a href="#" class="easyui-linkbutton" onclick="merge();">合并</a>-->
 <button  id="me" onclick="merge()" type="button" class=" but" >合并</button>
+
+
 
 <table id="dataTable"  style="width:98%;height:98%">
 </table>
-<div id="weektb"/>
 
-<div id="win" class="easyui-dialog" title="Login"  closed="true" style="width:300px;height:180px;" data-options="iconCls:'icon-save',resizable:true,modal:true">
 
-    <form style="padding:10px 20px 10px 40px;">
 
-        <p>ID: <input id="win_id" style="line-height:26px;border:1px solid #ccc"></p>
-
-        <p>NAME: <input id="win_name" style="line-height:26px;border:1px solid #ccc"></p>
-
-        <div style="padding:5px;text-align:center;">
-
-            <a href="#" class="easyui-linkbutton" onclick="doOk()">Ok</a>
-
-            <a href="#" class="easyui-linkbutton" onclick="doCancel()">Cancel</a>
-
-        </div>
-
-    </form>
-
-</div>
 
 
 
@@ -63,8 +49,7 @@ textField:'text',onChange:uie_dgd_search" id="db">
         getAllDb();
         //初始化列表
         page_init();
-        $('#win').show();
-        $('#win').dialog('refresh','xxxxxxxxxxxxxx');
+
     });
 
     function merge() {
@@ -89,8 +74,6 @@ textField:'text',onChange:uie_dgd_search" id="db">
                 disLoad();
                 if(data.err){
                     alert(data.content) ;
-                    // $('#w').html(content);
-                    // $('#w').show();
                     return;
                 }
                 var list = data.list;
@@ -99,8 +82,7 @@ textField:'text',onChange:uie_dgd_search" id="db">
                 for(var i=0;i<list.length;i++){
                     html +='序号'+i+'： '+list[i].TABLE_NAME+'成功同步'+list[i].INSERT_COUNT+'条数据   ';
                 }
-                // $('#w').html(html);
-                // $('#w').show();
+
                 alert(html);
 
             },

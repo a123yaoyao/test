@@ -106,7 +106,7 @@ public class TbService {
         String sql =" select t.table_name, count_rows(t.table_name)  num_rows,\n" +
                 "            ( select count(*) from user_tab_columns where table_name= t.table_name ) num_columns from user_tables t\n where 1=1 " ;
 
-        if (null!=tbName && !"".equals(tbName.trim()) ) sql+=" and t.TABLE_NAME like '%"+tbName+"%'";
+        if (null!=tbName && !"".equals(tbName.trim()) ) sql+=" and t.TABLE_NAME like '%"+tbName.toUpperCase()+"%'";
 
         String totalSql = "select count(*)  total from ("+sql +") t";
                 if(sort!=null && !"".equals(sort)){
