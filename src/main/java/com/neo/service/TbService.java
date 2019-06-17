@@ -7,8 +7,6 @@ import com.neo.util.CollectionUtil;
 import com.neo.util.DataSourceHelper;
 import com.neo.util.DbUtil;
 import org.apache.log4j.Logger;
-import org.codehaus.groovy.tools.StringHelper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -191,60 +189,128 @@ public class TbService {
     public Integer mergeData1(String dbName ,String tbName,String masterDataSource, List<Map<String,Object>> list,int groupSize,
                               Connection masterConn,Connection slaverConn
     ) throws Exception {
+
         DbUtil masterDbUtil =new DbUtil(masterConn);
         DbUtil salverDbUtil =new DbUtil(slaverConn);
-        String  sql =" select count(1) from "+tbName ;
-       int count = salverDbUtil.getCount(sql,new Object[][]{});
-
-      //  int count = 24116;
-
-        //查询被导入数据库的表结构
-        List<Map<String, Object>> tb = selectTableStructureByDbAndTb(tbName,salverDbUtil);
+        //查询表结构
+        List<Map<String, Object>> tb = selectTableStructureByDbAndTb( tbName,salverDbUtil);
         //该主库是否存在此表
-        count = checkTable(tbName,masterDbUtil,null);
-        // 查询所有数据
-        Map<String, Object> param = new HashMap<>();
-
-
+        int count = checkTable(tbName,masterDbUtil,null);
+        String addColumns = ""; //增加的列
+        Map<String,Object> param =new HashMap<>();
         if (0 == count) {//若不存在则主数据源创建新表
-            // tableStructure = selectTableStructureByDbAndTb(dbName, tbName,masterConn);
             getCreateTableSql(tbName, tb, param);
             int i =createNewTable(param,masterDbUtil);
 
+        }else{//若存在则比较
+            List<Map<String, Object>> masterTb = selectTableStructureByDbAndTb( tbName,masterDbUtil);
+            String cloumnName ;
+            String dataType ;
+            Object dataLength;
+            for (Map<String, Object> tbMap:tb ) {
+                boolean flag =false;
+                cloumnName =tbMap.get("COLUMN_NAME")+"";
+                dataType = tbMap.get("DATA_TYPE")+"" ;
+                dataLength = tbMap.get("DATA_LENGTH");
+                for (Map<String, Object> masterTbMap:masterTb) {
+                    if (masterTbMap.containsValue(cloumnName)){
+                        flag = true;
+                        break;
+                    }
+                }
+                if (!flag){
+                    addColumns +=cloumnName+",";
+                    String sql = " alter table "+tbName+" add ("+cloumnName+" "+dataType;
+                    if (null!= dataLength){
+                        sql+="("+dataLength+")";
+                    }
+                    sql+=" ) ";
+                    masterDbUtil.executeUpdate(sql,new Object[][]{});
+                    logger.info("为"+dbName+"库添加"+cloumnName+"字段成功！");
+                }
+            }
         }
 
-        int thrednum =  count%groupSize==0? count/groupSize: count/groupSize+1;//线程数
+        Map<String, Object> paramsMap = new HashMap<>();
+        paramsMap.put("tbName", tbName);
+
+
+        int insertCount =0;
+        String  countsql =" select count(1) from "+tbName ;
+        int countList = salverDbUtil.getCount(countsql,new Object[][]{});//总数据
+        int  cycleCount =10 ;//循环次数
         int start =0;
-        int end =0;
-        long queryStart =System.currentTimeMillis();
+        int end =0 ;
+        int threads = 8 ;//多线程数量
+        //每次循环处理的数量
+        int dealCount = (0 == countList % cycleCount )? countList / cycleCount : countList / cycleCount+1;
+        //每个线程处理的数据条数
+        int threaddealCount = (0 == dealCount % threads )? dealCount / threads : dealCount / threads+1;
 
-        List<Map<String, Object>> data = new ArrayList<Map<String, Object>>();
-        ExecutorService service = Executors.newFixedThreadPool(thrednum);
-        BlockingQueue<Future<List<Map<String, Object>>>> queue = new LinkedBlockingQueue<Future<List<Map<String, Object>>>>();
-        final CountDownLatch  endLock = new CountDownLatch(thrednum); //结束门
-        for (int i = 0; i < thrednum; i++) {
-            Future<List<Map<String, Object>>> future = service.submit(read2List(i, groupSize, salverDbUtil,dbName,tbName,masterDbUtil,endLock));
-            queue.add(future);
-        }
-        int queueSize = queue.size();
-        endLock.await();
-       /* for (int i = 0; i < queueSize; i++) {
-            List<Map<String, Object>> list1= queue.take().get();
-            data.addAll(list1);
-        }*/
-        for (Future<List<Map<String, Object>>> future : queue) {
-            List<Map<String, Object>>  list1 = future.get();
-            data.addAll(list1);
-        }
-         //主线程阻塞，直到所有线程执行完成
-//        for(Future<Integer> future : queue)  insertCount +=future.get();
-//        exec.shutdown(); //关闭线程池
-        service.shutdown();
+        for (int i = 0; i < cycleCount ; i++) {
+            //每次循环处理数据的开始坐标和结束坐标
+            start =i*dealCount+1;
+            end = dealCount*(i+1) ;
+            logger.info("循环处理数据范围： 开始节点 "+start +" 结束节点 "+end);
+            //创建一个线程池
+           /* ExecutorService service = Executors.
+             //newSingleThreadExecutor();
+                    newFixedThreadPool(threads);*/
+            //创建一个堵塞队列
+            //BlockingQueue<Future<Integer>> queue = new LinkedBlockingQueue<>();
+            //final CountDownLatch  endLock = new CountDownLatch(threads); //结束门
+            //计算每个线程处理的数据范围
 
-       // List<Map<String, Object>> data1 = selectAllByDbAndTb(dbName, tbName, salverDbUtil);
-        long queryEnd =System.currentTimeMillis();
-        logger.info("查询"+dbName+"库 中表名为"+tbName+"的所有数据花费时间为"+(queryEnd-queryStart)/1000+"秒");
-        return 0;
+            for (int j = 0; j <threads ; j++) {
+                int startIndex = start +j*threaddealCount ;
+                if (j>0) startIndex +=1;
+                int endIndex = start + threaddealCount *(j+1) ;
+                if (endIndex>end) endIndex =end ;
+                int finalEndIndex = endIndex;
+                int finalStartIndex = startIndex;
+
+                List<Map<String, Object>> data = selectAllByDbAndTb(dbName, tbName, salverDbUtil,finalStartIndex,finalEndIndex);
+                if (data.size()==0) return 0;
+                //批量删除重复的数据
+                int delCount = batchDelete(paramsMap, tbName, data, masterDbUtil,salverDbUtil);
+                insertCount += masterDbUtil. batchInsertJsonArry(tbName,data,tb);
+
+
+
+           /*     Future<Integer> future= service.submit(new Callable<Integer>(){
+                    @Override
+                    public Integer call() throws Exception {
+                        try {
+                            long start =System.currentTimeMillis();
+                            logger.info("线程 "+Thread.currentThread().getName()+" ： 开始节点 "+ finalStartIndex +" 结束节点 "+ finalEndIndex);
+                            //查询某个库下的某个表的所有数据
+                            List<Map<String, Object>> data = selectAllByDbAndTb(dbName, tbName, salverDbUtil,finalStartIndex,finalEndIndex);
+                            if (data.size()==0) return 0;
+                            //批量删除重复的数据
+                            int delCount = batchDelete(paramsMap, tbName, data, masterDbUtil,salverDbUtil);
+                            return masterDbUtil. batchInsertJsonArry(tbName,data,tb);
+                        }catch(Exception e) {
+                            logger.error("数据同步 exception!",e);
+                            return 0;
+                        }finally {
+                            long end =System.currentTimeMillis();
+                            logger.info("线程 "+Thread.currentThread().getName()+" ： 执行时间为： "+ finalStartIndex +" 结束节点 "+ finalEndIndex);
+                            endLock.countDown(); //线程执行完毕，结束门计数器减1
+                        }
+
+                    }
+                });*/
+//                queue.add(future);
+            }
+
+          /*  endLock.await(); //主线程阻塞，直到所有线程执行完成
+            for(Future<Integer> future : queue)  insertCount +=future.get();
+            service.shutdown(); //关闭线程池*/
+        }
+
+
+
+        return insertCount;
     }
 
 
@@ -318,8 +384,8 @@ public class TbService {
         long queryStart =System.currentTimeMillis();
         //查询某个库下的某个表的所有数据
         List<Map<String, Object>> data =
-                //getDataByMulitThreads( dbName , tbName, masterDataSource,   groupSize, masterConn, slaverConn);
-                selectAllByDbAndTb(dbName, tbName,salverDbUtil,null,null);
+                getDataByMulitThreads( dbName , tbName, masterDataSource,   groupSize, masterConn, slaverConn);
+               // selectAllByDbAndTb(dbName, tbName,salverDbUtil,null,null);
         if (data.size()==0) return 0;
         if (data.size()<groupSize) threads =1; //如果同步的数据太少 小于切割的数据条数 则只用一个线程
         Map<String,Object> m =(Map<String,Object>)data.get(0);
@@ -334,7 +400,7 @@ public class TbService {
         int delCount = batchDelete(paramsMap, tbName, data, masterDbUtil,salverDbUtil);
 
         //判断该表是否使用批处理
-        boolean isUseBatch = checTableIsUseBatch(tbName);
+      //  boolean isUseBatch = checTableIsUseBatch(tbName);
 
         if (threads == 1 ){ //不开启多线程
             for (List<Map<String, Object>> dat : newData) {
@@ -386,45 +452,7 @@ public class TbService {
         return insertCount;
     }
 
-    private int specialDel(String tbName, List<Map<String, Object>> data, DbUtil masterDbUtil) throws Exception {
-        List<Map<String, Object>>  list = new ArrayList<>();
-        Map<String,Object> map =new HashMap<>();
-        List<String> columns = new ArrayList<>();
-        columns.add("EAF_ID");
-        map.put("COLUMN_NAME",columns);
-        map.put("IS_NEED_DEL",true);
-        list.add(map);
-        if (tbName.equals("EAF_DMM_METAATTR_L")){
 
-            return masterDbUtil.batchDelete(data, list, "EAF_DMM_METAATTR_M");
-        }
-        if (tbName.equals("EAF_DMM_METAATTR_M")){
-            return masterDbUtil.batchDelete(data, list, "EAF_DMM_METAATTR_L");
-        }else{
-            throw new Exception("未知的 错误 表名既不是 EAF_DMM_METAATTR_L 也不是 EAF_DMM_METAATTR_M ");
-        }
-
-
-    }
-
-    private boolean checTableIsUseBatch(String tbName) {
-        boolean isUseBatch =true ;
-        JSONArray constraint = JSONArray.parseArray(uniqueConstraint);
-
-        JSONObject jsonObject =null;
-
-        for (int i = 0; i <constraint.size() ; i++) {
-            jsonObject = (JSONObject) constraint.get(i);
-            if (tbName.equals(jsonObject.get("table"))){
-                if (null !=  jsonObject.get("isUseBatch") ){
-                    isUseBatch = (Boolean) jsonObject.get("isUseBatch");
-                    break;
-                }
-
-            }
-        }
-        return isUseBatch;
-    }
 
     /**
      * 批量删除重复的数据

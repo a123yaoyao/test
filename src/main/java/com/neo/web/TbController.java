@@ -7,6 +7,7 @@ import com.google.gson.JsonParser;
 import com.neo.service.TableService;
 import com.neo.service.TbService;
 import com.neo.util.DataSourceHelper;
+import com.neo.util.DbUtil;
 import com.neo.util.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -112,9 +113,12 @@ public class TbController  {
             groupSiz= Integer.valueOf(   groupSize  );
             list = getParamList(tbCollection, "tbs");
             int k=0;
+            int count=0;
+            DbUtil salverDbUtil =new DbUtil(slaverConn);
             for (Map<String, Object> map : list) {
 
                 tbName = map.get("TABLE_NAME") + "";
+                count = salverDbUtil.getCount("select count(*) from "+tbName,new Object[][]{});
                 resultMap = new HashMap();
                 resultMap.put("TABLE_NAME", tbName);
 //                resultMap.put("INSERT_COUNT", tableService.mergeData(dbName, tbName, masterDataSource, list, Integer.valueOf(groupSiz),masterConn,slaverConn)+"");

@@ -111,8 +111,11 @@ textField:'text',onChange:uie_dgd_search" id="db">
         load();
         var obj ={};
         obj.tbs =selRows;
+        var surl = "../mergeData";
+        if (selRows.length ==1 )
+            return;
         $.ajax({
-            url:'../mergeData',
+            url:surl,
             type: 'POST',
             dataType:'json',
             data:{
