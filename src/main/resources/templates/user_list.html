@@ -57,6 +57,26 @@
         margin: -200px auto auto;*/
     }
 
+    .combo-arrow:hover {
+        background-color: white;
+    }
+
+    .combo-arrow {
+        background-color: white;
+    }
+
+    .textbox {
+        border: 1px solid #8080802e;
+    }
+
+    .combobox-item-selected {
+        background-color: #9e9e9e3d;
+    }
+
+    .panel-header, .panel-body {
+        border-color: #9e9e9e5c;
+    }
+
 </style>
 <body>
 <!--模态窗口-->
@@ -74,11 +94,11 @@
 </div>
 <!--工具栏-->
 <!--<div style="padding:10px 5px 15px 20px;">-->
-<span style="margin-left: 15px;">库名：</span><select class="easyui-combobox" panelHeight="auto" style="width:200px" data-options="valueField:'id',
+<span style="margin-left: 15px;">库名：</span><select class="easyui-combobox" panelHeight="auto" style="width:200px;height:35px;" data-options="valueField:'id',
 textField:'text',onChange:uie_dgd_search" id="db">
 </select>
 <span style="margin-left: 15px;">表名：</span>
-<input class="easyui-textbox" panelHeight="auto" style="width:200px" id="tbb"   >
+<input class="easyui-textbox" panelHeight="auto" style="width:200px;height:35px;" id="tbb"   >
 </input>
 <a href="#" class="easyui-linkbutton comm_but " onclick="uie_dgd_search();">查询</a>
 <button  id="me" onclick="merge()" type="button" class=" but" >合并</button>
@@ -112,8 +132,7 @@ textField:'text',onChange:uie_dgd_search" id="db">
         var obj ={};
         obj.tbs =selRows;
         var surl = "../mergeData";
-        if (selRows.length ==1 )
-            return;
+
         $.ajax({
             url:surl,
             type: 'POST',
