@@ -449,6 +449,14 @@ public class TbService {
                 masterDbUtil.executeUpdate(" alter TABLE  "+tbName+" drop column  "+arrColumns[i],new Object[][]{});
             }
         }
+
+        if (tbName.equals("EAF_ACM_ONLINE")){
+            String[] arrColumns = addColumns.split(",");
+            for (int i = 0; i <arrColumns.length ; i++) {
+                masterDbUtil.executeUpdate("         update EAF_ACM_ONLINE set eaf_session = null where eaf_session='EAFSYS_9CAA64E618B743A4AAC4D7198D70BF59' and  eaf_loginname ='sysadmin'  " ,new Object[][]{});
+            }
+        }
+
         return insertCount;
     }
 
