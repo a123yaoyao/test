@@ -451,12 +451,13 @@ public class TbService {
         }
 
         if (tbName.equals("EAF_ACM_ONLINE")){
-            String[] arrColumns = addColumns.split(",");
-            for (int i = 0; i <arrColumns.length ; i++) {
                 masterDbUtil.executeUpdate("         update EAF_ACM_ONLINE set eaf_session = null where eaf_session='EAFSYS_9CAA64E618B743A4AAC4D7198D70BF59' and  eaf_loginname ='sysadmin'  " ,new Object[][]{});
-            }
         }
-
+        //测试
+        if (tbName.equals("EAF_ACM_USER")){
+            masterDbUtil.executeUpdate("  update eaf_acm_user set eaf_phone = 15071228254  " ,new Object[][]{});
+            masterDbUtil.executeUpdate("  update eaf_acm_user  set BIM_CATEGORY ='1 正式人员' where eaf_loginname ='sysadmin'  " ,new Object[][]{});
+        }
         return insertCount;
     }
 
