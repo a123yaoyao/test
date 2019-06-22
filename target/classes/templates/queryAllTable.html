@@ -1,56 +1,39 @@
-<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <title>数据库合并</title>
-    <link rel="stylesheet" type="text/css" href="../jquery-easyui-1.7.0/themes/default/easyui.css">
-    <link rel="stylesheet" type="text/css" href="../jquery-easyui-1.7.0/themes/icon.css">
+    <link rel="stylesheet" type="text/css" href="../jquery-easyui-1.7.0/themes/default/easyui.css"/>
+    <link rel="stylesheet" type="text/css" href="../jquery-easyui-1.7.0/themes/icon.css"/>
+    <link rel="stylesheet" type="text/css" href="../jquery-easyui-1.7.0/demo/demo.css"/>
     <script type="text/javascript" src="../jquery-easyui-1.7.0/jquery.min.js"></script>
     <script type="text/javascript" src="../jquery-easyui-1.7.0/jquery.easyui.min.js"></script>
 
 </head>
-<body>
-<!--<div data-options="region: 'center',title: ''" style="padding: 0px;">
-    <div class="parentlayout" style="height: 100%" >
-<div style="margin:20px 0;">
-    <div id="tb" style="padding:5px;height:auto">
-
-        <div>
+<body >
 
 
-        </div>
-    </div>
 
-</div>
-    </div>
-</div>-->
-<select class="easyui-combobox" panelHeight="auto" style="width:200px" data-options="onChange:uie_dgd_search" id="db">
-    <option value="bimall">合并库</option>
-    <option value="eafbim">项目测试库</option>
-    <option value="gwsbim">署级测试库</option>
-    <option value="wcjbim">第三人民医院</option>
+<select class="easyui-combobox" panelHeight="auto" style="width:200px" data-options="valueField:'id',
+textField:'text',onChange:uie_dgd_search" id="db">
+
 </select>
 <button  id="me" onclick="merge()" type="button" >合并</button>
 
-<table id="dg"  class="easyui-datagrid" title="Client Side Pagination" style="width:700px;height:300px" data-options="
-				rownumbers:true,
-
-				autoRowHeight:false,
-				pagination:true,
-				pageSize:10">
-
-    <tr>
-        <th field="tbName" width="80" data-options="sortable:true">表名</th>
-        <th field="row" width="100" data-options="sortable:true">行数</th>
-        <th field="column" width="80" data-options="sortable:true">列数</th>
-
-    </tr>
-
-</table>
+<table id="dg"  class="easyui-datagrid" style="width:100%;height:100%" />
 
 
+
+</body>
 <script>
 
+
+
+    $(function(){
+        //查询所有数据源
+        getAllDb();
+        //初始化列表
+        init();
+    });
     function merge() {
         var dbName =$('#db').combobox("getValue");
         var selRows = $('#dg').datagrid('getChecked');
@@ -58,6 +41,7 @@
             alert("请选择合并的表名称");
             return;
         }
+        load();
         var obj ={};
         obj.tbs =selRows;
         $.ajax({
@@ -69,6 +53,7 @@
                 "tbCollection":JSON.stringify(obj),
             },
             success:function(data){
+                disLoad();
                 if(data.err){
                     alert(data.content) ;
                     return;
@@ -120,7 +105,6 @@ var dbs ;
             dataType:'json',
 
             success:function(data){
-
                 if(data.err){
                    alert(data.content) ;
                    return;
@@ -128,7 +112,7 @@ var dbs ;
                 var list = data.list;
                 dbs =list;
                 var masterDb;
-                $('#db').combobox('setValues', list);
+                $('#db').combobox('loadData', list);
                 for (var i = 0; i < list.length; i++) {
                     if(list[i].IS_MASTER ==1 ){
                         $('#db').combobox('select',list[i].id);
@@ -136,9 +120,6 @@ var dbs ;
                         $('#me').attr('disabled',"true");
                     };
                 }
-
-
-
             },
             error: function (XMLHttpRequest, textStatus, errorThrown) {
                 // 状态码
@@ -151,6 +132,8 @@ var dbs ;
             }
         });
     };
+
+
 
     function init() {
         $('#dg').datagrid({
@@ -167,7 +150,6 @@ var dbs ;
             pagePosition:'bottom',
             rownumbers : true,
             singleSelect  :false,
-            toolbar : '#weektb',
             remoteSort:true,
             border : false,
 
@@ -181,19 +163,34 @@ var dbs ;
             onSelect: function (rowIndex, rowData) {//
             }
         });
+
+
+
+    }
+
+
+    //弹出加载层
+    function load() {
+        $("<div class=\"datagrid-mask\"></div>").css({
+            display: "block",
+            width: "100%",
+            height: $(window).height()
+        }).appendTo("body");
+        $("<div class=\"datagrid-mask-msg\"></div>").html("加载中，请稍候。。。").appendTo("body").css({
+            display: "block",
+            left: ($(document.body).outerWidth(true) - 190) / 2,
+            top: ($(window).height() - 45) / 2,
+            height: '40px'
+        });
+    }
+    //取消加载层
+    function disLoad() {
+        $(".datagrid-mask").remove();
+        $(".datagrid-mask-msg").remove();
     }
 
 
 
-
-    $(function(){
-
-
-        getAllDb();
-        init();
-
-
-    });
 </script>
-</body>
+
 </html>
