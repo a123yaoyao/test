@@ -2,7 +2,9 @@ package com.neo.util;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import org.springframework.stereotype.Component;
 
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -37,7 +39,8 @@ public class DateUtil {
     }
 
     /**
-     * @param 返回java.sql.Date格式的
+     * @param
+     * 返回java.sql.Date格式的
      * */
     public static java.sql.Date strToDate(String strDate) {
         String str = strDate;
@@ -51,6 +54,24 @@ public class DateUtil {
         java.sql.Date date = new java.sql.Date(d.getTime());
         return date;
     }
+
+
+
+    public static java.sql.Timestamp strToTimeStamp(String strDate) {
+        String str = strDate;
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        java.util.Date d = null;
+        try {
+            d = format.parse(str);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return new java.sql.Timestamp(d.getTime());
+
+    }
+
+
 
 
 }

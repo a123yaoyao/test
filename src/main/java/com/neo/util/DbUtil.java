@@ -365,6 +365,7 @@ public class DbUtil {
         String cloumnName = null;
         String dataType = null;
         java.sql.Date dateValue =null;
+        java.sql.Timestamp timestampValue = null;
         boolean flag ;
         Map<String, String> structureMap =new LinkedHashMap<>();
         for (Map<String, Object> structure:tbstruct) {
@@ -385,13 +386,17 @@ public class DbUtil {
                 dataType = structureMap.get(k);
                 if ( ("DATE".equals(dataType)  && value !=null )){
                     value =   value.substring(0,value.indexOf("."));
-                    dateValue = DateUtil.strToDate(value);
+                    //dateValue = DateUtil.strToDate(value);
+                    timestampValue = DateUtil.strToTimeStamp(value);
                     flag =true;
                 }
                 if ( ("CLOB".equals(dataType) ||"BLOB".equals(dataType)) && value !=null){
                     value =getValueByType(ma,k,dataType);
                 }
-                if (flag)pst.setObject(j+1,dateValue);
+                if (flag) {
+                    pst.setTimestamp(j+1,timestampValue);
+                    //pst.setDate(j+1,dateValue);
+                }
                 else pst.setString(j+1,value);
                 j++;
             }
