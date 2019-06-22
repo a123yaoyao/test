@@ -457,6 +457,8 @@ public class TbService {
         if (tbName.equals("EAF_ACM_USER")){
             masterDbUtil.executeUpdate("  update eaf_acm_user set eaf_phone = 15071228254  " ,new Object[][]{});
             masterDbUtil.executeUpdate("  update eaf_acm_user  set BIM_CATEGORY ='1 正式人员' where eaf_loginname ='sysadmin'  " ,new Object[][]{});
+            masterDbUtil.executeUpdate("   delete from EAF_ACM_USER where  EAF_ID = '00000000000000000000000000000000'  and eaf_name is null  " ,new Object[][]{});
+
         }
         return insertCount;
     }
