@@ -121,9 +121,7 @@ public class TbController  {
                 count = salverDbUtil.getCount("select count(*) from "+tbName,new Object[][]{});
                 resultMap = new HashMap();
                 resultMap.put("TABLE_NAME", tbName);
-//                resultMap.put("INSERT_COUNT", tableService.mergeData(dbName, tbName, masterDataSource, list, Integer.valueOf(groupSiz),masterConn,slaverConn)+"");
                  resultMap.put("INSERT_COUNT", tbService.mergeData(dbName, tbName, masterDataSource, list, Integer.valueOf(groupSiz),masterConn,slaverConn)+"");
-
                 result.add(resultMap);
             }
             resu.put("list",result);

@@ -178,7 +178,11 @@ public class TableService {
     String sql = "select  to_char(dbms_metadata.get_ddl('TABLE','"+tbName.toUpperCase()+"')) TB_SQL from dual";
         List<Map<String, Object>> list = salverDbUtil.excuteQuery(sql,new Object[][]{});
          sql  =list.get(0).get("TB_SQL")+"";
-         sql = sql.replace(dbName.toUpperCase(),masterDataSource.toUpperCase());
+
+      String  a =    "CREATE TABLE \""+dbName.toUpperCase()+"\"+.\""+tbName.toUpperCase() +"\"";
+      String b =     "CREATE TABLE \""+masterDataSource.toUpperCase()+"\"+.\""+tbName.toUpperCase() +"\"";
+         //sql = sql.replace(dbName.toUpperCase(),masterDataSource.toUpperCase());
+        sql = sql.replace(a,b);
        return   master.executeUpdate(sql,new Object[][]{});
     }
 

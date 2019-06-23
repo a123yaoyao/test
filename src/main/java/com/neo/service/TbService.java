@@ -186,132 +186,6 @@ public class TbService {
         return data;
     }
 
-    public Integer mergeData1(String dbName ,String tbName,String masterDataSource, List<Map<String,Object>> list,int groupSize,
-                              Connection masterConn,Connection slaverConn
-    ) throws Exception {
-
-        DbUtil masterDbUtil =new DbUtil(masterConn);
-        DbUtil salverDbUtil =new DbUtil(slaverConn);
-        //查询表结构
-        List<Map<String, Object>> tb = selectTableStructureByDbAndTb( tbName,salverDbUtil);
-        //该主库是否存在此表
-        int count = checkTable(tbName,masterDbUtil,null);
-        String addColumns = ""; //增加的列
-        Map<String,Object> param =new HashMap<>();
-        if (0 == count) {//若不存在则主数据源创建新表
-            getCreateTableSql(tbName, tb, param);
-            int i =createNewTable(param,masterDbUtil);
-
-        }else{//若存在则比较
-            List<Map<String, Object>> masterTb = selectTableStructureByDbAndTb( tbName,masterDbUtil);
-            String cloumnName ;
-            String dataType ;
-            Object dataLength;
-            for (Map<String, Object> tbMap:tb ) {
-                boolean flag =false;
-                cloumnName =tbMap.get("COLUMN_NAME")+"";
-                dataType = tbMap.get("DATA_TYPE")+"" ;
-                dataLength = tbMap.get("DATA_LENGTH");
-                for (Map<String, Object> masterTbMap:masterTb) {
-                    if (masterTbMap.containsValue(cloumnName)){
-                        flag = true;
-                        break;
-                    }
-                }
-                if (!flag){
-                    addColumns +=cloumnName+",";
-                    String sql = " alter table "+tbName+" add ("+cloumnName+" "+dataType;
-                    if (null!= dataLength){
-                        sql+="("+dataLength+")";
-                    }
-                    sql+=" ) ";
-                    masterDbUtil.executeUpdate(sql,new Object[][]{});
-                    logger.info("为"+dbName+"库添加"+cloumnName+"字段成功！");
-                }
-            }
-        }
-
-        Map<String, Object> paramsMap = new HashMap<>();
-        paramsMap.put("tbName", tbName);
-
-
-        int insertCount =0;
-        String  countsql =" select count(1) from "+tbName ;
-        int countList = salverDbUtil.getCount(countsql,new Object[][]{});//总数据
-        int  cycleCount =10 ;//循环次数
-        int start =0;
-        int end =0 ;
-        int threads = 8 ;//多线程数量
-        //每次循环处理的数量
-        int dealCount = (0 == countList % cycleCount )? countList / cycleCount : countList / cycleCount+1;
-        //每个线程处理的数据条数
-        int threaddealCount = (0 == dealCount % threads )? dealCount / threads : dealCount / threads+1;
-
-        for (int i = 0; i < cycleCount ; i++) {
-            //每次循环处理数据的开始坐标和结束坐标
-            start =i*dealCount+1;
-            end = dealCount*(i+1) ;
-            logger.info("循环处理数据范围： 开始节点 "+start +" 结束节点 "+end);
-            //创建一个线程池
-           /* ExecutorService service = Executors.
-             //newSingleThreadExecutor();
-                    newFixedThreadPool(threads);*/
-            //创建一个堵塞队列
-            //BlockingQueue<Future<Integer>> queue = new LinkedBlockingQueue<>();
-            //final CountDownLatch  endLock = new CountDownLatch(threads); //结束门
-            //计算每个线程处理的数据范围
-
-            for (int j = 0; j <threads ; j++) {
-                int startIndex = start +j*threaddealCount ;
-                if (j>0) startIndex +=1;
-                int endIndex = start + threaddealCount *(j+1) ;
-                if (endIndex>end) endIndex =end ;
-                int finalEndIndex = endIndex;
-                int finalStartIndex = startIndex;
-
-                List<Map<String, Object>> data = selectAllByDbAndTb(dbName, tbName, salverDbUtil,finalStartIndex,finalEndIndex);
-                if (data.size()==0) return 0;
-                //批量删除重复的数据
-                int delCount = batchDelete(paramsMap, tbName, data, masterDbUtil,salverDbUtil);
-                insertCount += masterDbUtil. batchInsertJsonArry(tbName,data,tb);
-
-
-
-           /*     Future<Integer> future= service.submit(new Callable<Integer>(){
-                    @Override
-                    public Integer call() throws Exception {
-                        try {
-                            long start =System.currentTimeMillis();
-                            logger.info("线程 "+Thread.currentThread().getName()+" ： 开始节点 "+ finalStartIndex +" 结束节点 "+ finalEndIndex);
-                            //查询某个库下的某个表的所有数据
-                            List<Map<String, Object>> data = selectAllByDbAndTb(dbName, tbName, salverDbUtil,finalStartIndex,finalEndIndex);
-                            if (data.size()==0) return 0;
-                            //批量删除重复的数据
-                            int delCount = batchDelete(paramsMap, tbName, data, masterDbUtil,salverDbUtil);
-                            return masterDbUtil. batchInsertJsonArry(tbName,data,tb);
-                        }catch(Exception e) {
-                            logger.error("数据同步 exception!",e);
-                            return 0;
-                        }finally {
-                            long end =System.currentTimeMillis();
-                            logger.info("线程 "+Thread.currentThread().getName()+" ： 执行时间为： "+ finalStartIndex +" 结束节点 "+ finalEndIndex);
-                            endLock.countDown(); //线程执行完毕，结束门计数器减1
-                        }
-
-                    }
-                });*/
-//                queue.add(future);
-            }
-
-          /*  endLock.await(); //主线程阻塞，直到所有线程执行完成
-            for(Future<Integer> future : queue)  insertCount +=future.get();
-            service.shutdown(); //关闭线程池*/
-        }
-
-
-
-        return insertCount;
-    }
 
 
     /**
@@ -346,8 +220,23 @@ public class TbService {
 
         if (0 == count) {//若不存在则主数据源创建新表
             getCreateTableSql(tbName, tb, param);
-            int i =createNewTable(param,masterDbUtil);
+            String sql = "select  to_char(dbms_metadata.get_ddl('TABLE','"+tbName.toUpperCase()+"')) TB_SQL from dual";
+            List<Map<String, Object>> tbCreateList = salverDbUtil.excuteQuery(sql,new Object[][]{});
+            sql  =tbCreateList.get(0).get("TB_SQL")+"";
+            String  createSalver =  "CREATE TABLE \""+dbName.toUpperCase()+"\"" +".\""+tbName.toUpperCase() +"\"";
+            String createMaster  =  "CREATE TABLE \""+masterDataSource.toUpperCase()+"\""+".\""+tbName.toUpperCase() +"\"";
+            //sql = sql.replace(dbName.toUpperCase(),masterDataSource.toUpperCase());
+            sql = sql.replace(createSalver,createMaster);
+           // sql = sql.replace(dbName.toUpperCase(),masterDataSource.toUpperCase());
+           // int i =createNewTable(param,masterDbUtil);
+            try{
+                masterDbUtil.executeUpdate(sql,new Object[][]{});
+            }catch (Exception e){
+                logger.error("根据ddl语句创建表失败， 采取第二种创建表方式");
+                createNewTable(param,masterDbUtil);
+            }
 
+            logger.info("*****************创建"+tbName+"成功！***************** ");
         }else{//若存在则比较
             List<Map<String, Object>> masterTb = selectTableStructureByDbAndTb( tbName,masterDbUtil);
             String cloumnName ;
