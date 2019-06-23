@@ -367,7 +367,7 @@ public class TbService {
                 if (!flag){
                     addColumns +=cloumnName+",";
                     String sql = " alter table "+tbName+" add ("+cloumnName+" "+dataType;
-                    if (null!= dataLength){
+                    if (null!= dataLength && !"CLOB".equals(dataType) && !"BLOB".equals(dataType)){
                         sql+="("+dataLength+")";
                     }
                     sql+=" ) ";
