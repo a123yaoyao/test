@@ -6,6 +6,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.neo.util.CollectionUtil;
 import com.neo.util.DataSourceHelper;
 import com.neo.util.DbUtil;
+import com.sun.xml.internal.bind.v2.TODO;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -13,10 +14,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 
 /**
@@ -225,10 +223,7 @@ public class TbService {
             sql  =tbCreateList.get(0).get("TB_SQL")+"";
             String  createSalver =  "CREATE TABLE \""+dbName.toUpperCase()+"\"" +".\""+tbName.toUpperCase() +"\"";
             String createMaster  =  "CREATE TABLE \""+masterDataSource.toUpperCase()+"\""+".\""+tbName.toUpperCase() +"\"";
-            //sql = sql.replace(dbName.toUpperCase(),masterDataSource.toUpperCase());
             sql = sql.replace(createSalver,createMaster);
-           // sql = sql.replace(dbName.toUpperCase(),masterDataSource.toUpperCase());
-           // int i =createNewTable(param,masterDbUtil);
             try{
                 masterDbUtil.executeUpdate(sql,new Object[][]{});
             }catch (Exception e){
@@ -283,6 +278,16 @@ public class TbService {
         //对数据进行切分
         int cutSize = data.size() /threads ;//每个线程处理的数据量
 
+
+        //TODO
+        if ("EAF_ACM_USER".equals(tbName)){
+            saveUserMapper(masterDbUtil,tbName,data,dbName);
+            //return 999999;
+        }
+
+        //
+
+
         List<List<Map<String, Object>>> newData = CollectionUtil.splitList(data, cutSize);
 
         //批量删除重复的数据
@@ -331,6 +336,7 @@ public class TbService {
         if (tbName.equals("EAF_ACM_ONLINE") ){
             masterDbUtil.executeUpdate("update eaf_acm_online l set l.eaf_contexlid='6BEB598696F4116772AF9E03EFC7E962' ",new Object[][]{});
             masterDbUtil.executeUpdate("alter table EAF_ACM_ONLINE modify eaf_contexlid default '6BEB598696F4116772AF9E03EFC7E962'",new Object[][]{});
+            masterDbUtil.executeUpdate("         update EAF_ACM_ONLINE set eaf_session = null where eaf_session='EAFSYS_9CAA64E618B743A4AAC4D7198D70BF59' and  eaf_loginname ='sysadmin'  " ,new Object[][]{});
         }
         if (tbName.equals("EAF_DMM_METAATTR_M")){
             String[] arrColumns = addColumns.split(",");
@@ -338,20 +344,71 @@ public class TbService {
                 masterDbUtil.executeUpdate(" alter TABLE  "+tbName+" drop column  "+arrColumns[i],new Object[][]{});
             }
         }
-
-        if (tbName.equals("EAF_ACM_ONLINE")){
-                masterDbUtil.executeUpdate("         update EAF_ACM_ONLINE set eaf_session = null where eaf_session='EAFSYS_9CAA64E618B743A4AAC4D7198D70BF59' and  eaf_loginname ='sysadmin'  " ,new Object[][]{});
-        }
         //测试
         if (tbName.equals("EAF_ACM_USER")){
             masterDbUtil.executeUpdate("  update eaf_acm_user set eaf_phone = 15071228254  " ,new Object[][]{});
             masterDbUtil.executeUpdate("  update eaf_acm_user  set BIM_CATEGORY ='1 正式人员' where eaf_loginname ='sysadmin'  " ,new Object[][]{});
-            masterDbUtil.executeUpdate("   delete from EAF_ACM_USER where  EAF_ID = '00000000000000000000000000000000'  and eaf_name is null  " ,new Object[][]{});
+            masterDbUtil.executeUpdate("  delete from EAF_ACM_USER where  EAF_ID = '00000000000000000000000000000000'  and eaf_name is null  " ,new Object[][]{});
 
         }
         return insertCount;
     }
 
+    private void saveUserMapper(DbUtil masterDbUtil, String tbName, List<Map<String,Object>> data,String dbName) {
+        if ("EAF_ACM_USER".equals(tbName)){
+          String sql = " select * from eaf_acm_user where EAF_LOGINNAME in (";
+          int k=0;
+            String eafId = "";
+            String loginName ="";
+          for (Map m:data) {
+                 eafId = m.get("EAF_ID")+"";
+                 loginName = m.get("EAF_LOGINNAME")+"";
+                 sql+="'"+loginName+"'";
+                 if (k!= data.size()-1) sql+=",";
+                 k++;
+          }
+          sql+=")";
+            try {
+             List<Map<String,Object>> list =    masterDbUtil.excuteQuery(sql,new Object[][]{});
+             if (list.size()==0) return;
+             boolean flag =false;
+             List<Map<String,Object>> recordList =new ArrayList<>();
+                Map<String,Object> map =new LinkedHashMap<String,Object>();
+                for (Map m: list) {
+                    for (Map mm:data) {
+                        if (( m.get("EAF_LOGINNAME")+"").equals(mm.get("EAF_LOGINNAME")+"")  && !( m.get("EAF_ID")+"").equals(mm.get("EAF_ID")+"")    ){
+                            map =new HashMap<>();
+                            map.put("EAF_ID",UUID.randomUUID().toString());
+                            map.put("EAF_DB_NAME",dbName);
+                            map.put("EAF_TB_NAME",tbName);
+                            map.put("EAF_DU_COL","EAF_ID");
+                            map.put("EAF_DU_COLV",mm.get("EAF_ID"));
+                            map.put("EAF_RE_COL","EAF_LOGINNAME");
+                            map.put("EAF_RE_COLV",mm.get("EAF_LOGINNAME"));
+                            recordList.add(map);
+                            System.out.println("重复的数据为 登录名"+m.get("EAF_LOGINNAME")+"  "+masterDataSource+"库EAF_ID为: "+m.get("EAF_ID")+dbName+"库EAF_ID为： "+mm.get("EAF_ID"));
+                            flag =true;
+                            break;
+                        }
+                    }
+
+                }
+                if (flag) {
+                    try {
+                        masterDbUtil.insertTbRecord("EAF_TB_RECORD",recordList);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        logger.error("插入失败----"+e.getMessage());
+                    }
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+                logger.error("查询出错"+e.getSQLState());
+            }
+        }
+
+    }
 
 
     /**

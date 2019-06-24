@@ -335,6 +335,65 @@ public class DbUtil {
 
     }
 
+    public int insertTbRecord(String tbName, List<Map<String, Object>> dat) throws Exception{
+        long start = System.currentTimeMillis();
+        Map<String,Integer> mapper =new HashMap<>();
+        mapper.put("EAF_ID",1);
+        mapper.put("EAF_DB_NAME",2);
+        mapper.put("EAF_TB_NAME",3);
+        mapper.put("EAF_DU_COL",4);
+        mapper.put("EAF_DU_COLV",5);
+        mapper.put("EAF_RE_COL",6);
+        mapper.put("EAF_RE_COLV",7);
+
+        String  sql= null;
+        int[] result= null;
+        PreparedStatement pst = null;
+        try {
+            sql =  getInsertSql( tbName,  dat);
+            conn.setAutoCommit(false);
+            pst = conn.prepareStatement(sql);
+            int i =0 ;
+            int ik[] =null;
+            for (Map m :  dat) {
+                i++;
+                pst.setString(mapper.get("EAF_ID"),m.get("EAF_ID")+"");
+                pst.setString(mapper.get("EAF_DB_NAME"),m.get("EAF_DB_NAME")+"");
+                pst.setString(mapper.get("EAF_TB_NAME"),m.get("EAF_TB_NAME")+"");
+                pst.setString(mapper.get("EAF_DU_COL"),m.get("EAF_DU_COL")+"");
+                pst.setString(mapper.get("EAF_DU_COLV"),m.get("EAF_DU_COLV")+"");
+                pst.setString(mapper.get("EAF_RE_COL"),m.get("EAF_RE_COL")+"");
+                pst.setString(mapper.get("EAF_RE_COLV"),m.get("EAF_RE_COLV")+"");
+                pst.addBatch();
+                if(i>0 && i%1000==0){
+                    ik = pst.executeBatch();
+                    conn.commit();
+                    //清除批处理命令
+                    pst.clearBatch();
+                    //如果不想出错后，完全没保留数据，则可以每执行一次提交一次，但得保证数据不会重复
+
+                }
+            }
+            ik = pst.executeBatch();
+            conn.commit();
+            pst.clearBatch();
+
+            long end = System.currentTimeMillis();
+            logger.info("记录表批量插入了:"+dat.size()+"条数据 需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
+            int len= dat.size() ;
+            return len;
+        } catch (Exception e) {
+            logger.error(sql.toString()+e.getMessage());
+
+        }/*finally {
+            closeAll();
+        }*/
+        return 0;
+
+    }
+
+
+
     private String getInsertSql(String tbName, List<Map<String, Object>> newData) {
         StringBuilder sql = new StringBuilder();
         Map<String,Object> m= newData.get(0);
