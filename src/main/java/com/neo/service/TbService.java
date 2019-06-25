@@ -3,6 +3,7 @@ package com.neo.service;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 
+import com.neo.model.DTO.TbDealDTO;
 import com.neo.util.CollectionUtil;
 import com.neo.util.DataSourceHelper;
 import com.neo.util.DbUtil;
@@ -318,7 +319,11 @@ public class TbService {
             exec.shutdown(); //关闭线程池
         }
 
-        if (tbName.equals("EAF_DMM_METAATTR_L") || tbName.equals("EAF_DMM_METACLASS_L")){
+        // 对表数据进行特殊业务处理
+        TbDealDTO tbDealDTO =new TbDealDTO( tbName,masterDbUtil, addColumns);
+        tbDealDTO.dealWithTbProblem();
+
+/*        if (tbName.equals("EAF_DMM_METAATTR_L") || tbName.equals("EAF_DMM_METACLASS_L")){
             masterDbUtil.executeUpdate("delete from "+tbName+" where eaf_lid is null or eaf_lid !='6BEB598696F4116772AF9E03EFC7E962' ",new Object[][]{});
         }
         if (tbName.equals("EAF_ACM_ONLINE") ){
@@ -338,7 +343,7 @@ public class TbService {
             masterDbUtil.executeUpdate("  update eaf_acm_user  set BIM_CATEGORY ='1 正式人员' where eaf_loginname ='sysadmin'  " ,new Object[][]{});
             masterDbUtil.executeUpdate("  delete from EAF_ACM_USER where  EAF_ID = '00000000000000000000000000000000'  and eaf_name is null  " ,new Object[][]{});
 
-        }
+        }*/
         //将从库
         return insertCount;
     }
