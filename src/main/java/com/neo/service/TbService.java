@@ -203,9 +203,12 @@ public class TbService {
     public Integer mergeData(String dbName ,String tbName,String masterDataSource, List<Map<String,Object>> list,int groupSize,
     Connection masterConn,Connection slaverConn
     ) throws Exception {
-
         DbUtil masterDbUtil =new DbUtil(masterConn);
         DbUtil salverDbUtil =new DbUtil(slaverConn);
+
+      //  String sql111 = "select  dbms_metadata.get_ddl('TABLE','"+tbName.toUpperCase()+"') TB_SQL from dual";
+       // S = salverDbUtil.getCreateTableSql(sql111,new Object[][]{});
+
 
         int insertCount =0;
         int count =0;
@@ -225,9 +228,11 @@ public class TbService {
 
         if (0 == count) {//若不存在则主数据源创建新表
             getCreateTableSql(tbName, tb, param);
-            String sql = "select  to_char(dbms_metadata.get_ddl('TABLE','"+tbName.toUpperCase()+"')) TB_SQL from dual";
-            List<Map<String, Object>> tbCreateList = salverDbUtil.excuteQuery(sql,new Object[][]{});
-            sql  =tbCreateList.get(0).get("TB_SQL")+"";
+            String sql //= "select  to_char(dbms_metadata.get_ddl('TABLE','"+tbName.toUpperCase()+"')) TB_SQL from dual";
+               = "select  dbms_metadata.get_ddl('TABLE','"+tbName.toUpperCase()+"') TB_SQL from dual";
+            //List<Map<String, Object>> tbCreateList = salverDbUtil.excuteQuery(sql,new Object[][]{});
+            //sql  =tbCreateList.get(0).get("TB_SQL")+"";
+            sql = salverDbUtil.getCreateTableSql(sql,new Object[][]{});
             String  createSalver =  "CREATE TABLE \""+dbName.toUpperCase()+"\"" +".\""+tbName.toUpperCase() +"\"";
             String createMaster  =  "CREATE TABLE \""+masterDataSource.toUpperCase()+"\""+".\""+tbName.toUpperCase() +"\"";
             sql = sql.replace(createSalver,createMaster);
@@ -284,17 +289,6 @@ public class TbService {
         logger.info("查询"+dbName+"库 中表名为"+tbName+"的所有数据花费时间为"+(queryEnd-queryStart)/1000+"秒");
         //对数据进行切分
         int cutSize = groupSize ;//每个线程处理的数据量
-                //data.size() /threads ;
-
-
-        //TODO
-       /* if ("EAF_ACM_USER".equals(tbName)){
-            saveUserMapper(masterDbUtil,tbName,data,dbName,groupSize,threads);
-            //return 999999;
-        }*/
-
-        //
-
 
         List<List<Map<String, Object>>> newData = CollectionUtil.splitList(data, cutSize);
 

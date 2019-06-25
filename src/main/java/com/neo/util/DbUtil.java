@@ -597,4 +597,50 @@ public class DbUtil {
         }
         return 0;
     }
+
+    public String getCreateTableSql(String sql, Object[][] params) {
+        // 执行SQL获得结果集
+        ResultSet rs = null;
+        String returnSql ="" ;
+
+        // 创建ResultSetMetaData对象
+        ResultSetMetaData rsmd = null;
+
+        // 结果集列数
+        int columnCount = 0;
+        try {
+            rs =   executeQueryRS(sql, params);
+            rsmd = rs.getMetaData();
+
+            // 获得结果集列数
+            columnCount = rsmd.getColumnCount();
+        } catch (SQLException e1) {
+            logger.error(e1.getMessage());
+        }
+
+
+        try {
+            // 将ResultSet的结果保存到List中
+            String type = "";
+            while (rs.next()) {
+                Map<String, Object> map = new LinkedHashMap<String, Object>();
+                for (int i = 1; i <= columnCount; i++) {
+                    type = rsmd.getColumnTypeName(i);
+                    Clob createSql =    rs.getClob(i) ;
+                    returnSql = StringUtils.ClobToString(createSql);
+                }
+
+            }
+        } catch (SQLException e) {
+            logger.error(e.getMessage());
+            logger.error(sql);
+        } /*finally {
+            if (null!= rs) rs.close();
+            if (null!= pst) pst.close();
+            if (null!= conn) conn.close();
+        }*/
+
+        return returnSql;
+
+    }
 }
