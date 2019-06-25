@@ -1,15 +1,12 @@
 -- Create table
-create table EAF_TB_RECORD
+create table EAF_USER_RECORD
 (
-  eaf_id              CHAR(32) not null primary key,
-  eaf_db_name         VARCHAR2(20),
-  eaf_tb_name         VARCHAR2(20),
-  eaf_du_col          VARCHAR2(20),
-  eaf_du_colv         VARCHAR2(20),
-  eaf_re_col          VARCHAR2(20),
-  eaf_re_colv         VARCHAR2(20)
+  eaf_id        VARCHAR2(200) not null,
+  eaf_db_name   VARCHAR2(200),
+  eaf_name      VARCHAR2(200),
+  eaf_loginname VARCHAR2(200)
 )
-tablespace BIMDISP_SYS
+tablespace TIEAF_CUS
   pctfree 10
   initrans 1
   maxtrans 255
@@ -20,4 +17,3 @@ tablespace BIMDISP_SYS
     minextents 1
     maxextents unlimited
   );
-
