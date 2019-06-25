@@ -43,6 +43,9 @@ public class TbService {
     @Value("${uniqueConstraint}")
     public String uniqueConstraint;
 
+    @Value("${tbUserId}")
+    public String tbUserId;
+
     @Value("${threadNum}")
     public String threadNum;
 
@@ -682,8 +685,57 @@ public class TbService {
     }
 
     public String updateUser(String dbName, String tbName, String masterDataSource,  Integer integer, Connection masterConn, Connection slaverConn) {
+        JSONArray constraint = JSONArray.parseArray(tbUserId);
+        List<String> columnList = null ;
+        JSONObject jsonObject =null;
+        String sql = "" ;
+        DbUtil masterDbUtil = new DbUtil(masterConn);
+        Boolean flag =false;
+        int len =0;
+        for (int i = 0; i <constraint.size() ; i++) {
+            jsonObject = (JSONObject) constraint.get(i);
+            if (tbName.equals(jsonObject.get("table")+"")){
+                flag = true ;
+                columnList = (List<String>)jsonObject.get("column");
+                for (String column: columnList) {
+                    sql =  getQueryUserIdMapperSql(column,tbName);
+                    try {
+                        List<Map<String,Object>> list = masterDbUtil.excuteQuery(sql,new Object[][]{});
+                       //更新业务表关联人员为空的人员id
+                        len += masterDbUtil.updateTbCreator(list,tbName,column);
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                        logger.info("查询或插入业务表人员报错"+e.getSQLState());
+                    }
+                }
+                break;
+            }
+        }
+        if (!flag){ //如果没有配置 默认更新创建人 修改人
+            try {
+                sql =  getQueryUserIdMapperSql("EAF_CREATOR",tbName);
+                List<Map<String,Object>> list = masterDbUtil.excuteQuery(sql,new Object[][]{});
+                len += masterDbUtil.updateTbCreator(list,tbName,"EAF_CREATOR");
+                sql =  getQueryUserIdMapperSql("EAF_MODIFIER",tbName);
+                list = masterDbUtil.excuteQuery(sql,new Object[][]{});
+                len += masterDbUtil.updateTbCreator(list,tbName,"EAF_MODIFIER");
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
+
+
+
+        }
+
+      /*  int i=0;
+        //第一种表
         if ("BIM_QUALITY_PROBLEM".equals(tbName)){
-            DbUtil masterDbUtil = new DbUtil(masterConn);
+            i =1 ;
+        }
+        if ( i ==1){
+
             String querySql ="-- 查询当前质量表中人员管理为空的eaf_id 也就是现在的eaf_id\n" +
                     "with tmp as (\n" +
                     "\n" +
@@ -704,24 +756,34 @@ public class TbService {
             try {
                 List<Map<String,Object>> list = masterDbUtil.excuteQuery(querySql,new Object[][]{});
                 masterDbUtil.updateTbCreator(list,tbName);
-                String currentCreator = "" ;
-                String mapperUser = "" ;
-              /*  for (Map m: dat) {
-                    currentCreator = m.get("EAF_CREATOR")+"" ;
-                    for (Map user: list) {
-                        mapperUser = user.get("T_ID")+"" ;
-                        if (currentCreator.equals(mapperUser)){
-                            m.put("EAF_CREATOR",user.get("EAF_ID")+"" );
-                        }
-                    }
-                }*/
             } catch (SQLException e) {
                 e.printStackTrace();
                 logger.info("查询人员报错"+querySql);
             }
             //更新表的创建用户在当前库不存在的eaf_creator
 
-        }
-       return "0";
+        }*/
+       return len+"";
+    }
+
+    private String getQueryUserIdMapperSql(String column,String tbName) {
+        String querySql ="-- 查询当前业务表中人员关联结果为空的eaf_id 也就是现在的eaf_id\n" +
+                "with tmp as (\n" +
+                "\n" +
+                "select t."+column+" from \n" +
+                "(select  (select eaf_name from eaf_acm_user where t."+column+" =eaf_id ) user_name,t.* from "+tbName+" t)t\n" +
+                "where t.user_name is null \n" +
+                "),\n" +
+                "\n" +
+                "--找出这些eaf_id 在记录表中对应的 人员登录名\n" +
+                "tmp_user as (\n" +
+                "select m.* from eaf_user_record m where m.eaf_id in (select "+column+" from tmp)\n" +
+                "),\n" +
+                "finall_user as (\n" +
+                "select  t.eaf_id ,tm.eaf_id t_id ,t.eaf_name  from eaf_acm_user  t inner join tmp_user  tm on t.eaf_loginname =tm.eaf_loginname \n" +
+                ")\n" +
+                "\n" +
+                "select * from finall_user";
+        return querySql;
     }
 }

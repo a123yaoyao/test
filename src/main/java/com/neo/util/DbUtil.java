@@ -577,9 +577,10 @@ public class DbUtil {
         }
     }
 
-    public void updateTbCreator(List<Map<String, Object>> list ,String tbName) {
-        String sql = " update   " + tbName + " set eaf_creator =? where eaf_creator =? ";
+    public int updateTbCreator(List<Map<String, Object>> list ,String tbName,String column) {
+        String sql = " update   " + tbName + " set "+column+" =? where "+column+" =? ";
         PreparedStatement pst = null;
+        int[] dataArr ;
         try {
              pst = conn.prepareStatement(sql);
             for (Map map:list) {
@@ -587,10 +588,13 @@ public class DbUtil {
                 pst.setString(2,map.get("T_ID")+"");
                 pst.addBatch();
             }
-            pst.executeBatch();
+            dataArr =  pst.executeBatch();
+
             conn.commit();
+            return dataArr.length;
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        return 0;
     }
 }
