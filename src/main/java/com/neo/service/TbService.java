@@ -206,7 +206,11 @@ public class TbService {
 
         int insertCount =0;
         int count =0;
-        int threads = Integer.valueOf(threadNum) ;//多线程数量
+
+        int listCount = salverDbUtil.getCount(" select count(1) from "+tbName,new Object[][]{});
+        //多线程数量
+        int threads = (listCount %  groupSize ==0)? listCount / groupSize: (listCount /groupSize)+1 ;
+
         List<Map<String,Object>> tableStructure = null;
         Map<String,Object> param =new HashMap<>();
         //查询被导入数据库的表结构
@@ -276,14 +280,15 @@ public class TbService {
         long queryEnd =System.currentTimeMillis();
         logger.info("查询"+dbName+"库 中表名为"+tbName+"的所有数据花费时间为"+(queryEnd-queryStart)/1000+"秒");
         //对数据进行切分
-        int cutSize = data.size() /threads ;//每个线程处理的数据量
+        int cutSize = groupSize ;//每个线程处理的数据量
+                //data.size() /threads ;
 
 
         //TODO
-        if ("EAF_ACM_USER".equals(tbName)){
-            saveUserMapper(masterDbUtil,tbName,data,dbName);
+       /* if ("EAF_ACM_USER".equals(tbName)){
+            saveUserMapper(masterDbUtil,tbName,data,dbName,groupSize,threads);
             //return 999999;
-        }
+        }*/
 
         //
 
@@ -298,7 +303,11 @@ public class TbService {
 
         if (threads == 1 ){ //不开启多线程
             for (List<Map<String, Object>> dat : newData) {
+                insertRecord(masterDbUtil,tbName,dat,dbName);//插入记录
                 insertCount += masterDbUtil.batchInsertJsonArry(tbName,dat,tb);
+                //先测试一张表
+                //更新表的创建用户在当前库不存在的eaf_creator
+                 updateCreator(masterDbUtil,dat,tbName);
             }
         }else{
             final BlockingQueue<Future<Integer>> queue = new LinkedBlockingQueue<>();
@@ -312,8 +321,13 @@ public class TbService {
                     public Integer call() {
                         try {
 
-                            return //masterDbUtil. insert(tbName,dat,tb,isUseBatch);
+                            insertRecord(masterDbUtil,tbName,dat,dbName);//插入记录
+                            int len =  //masterDbUtil. insert(tbName,dat,tb,isUseBatch);
                                     masterDbUtil. batchInsertJsonArry(tbName,dat,tb);
+                            //先测试一张表
+                            //更新表的创建用户在当前库不存在的eaf_creator
+                            updateCreator(masterDbUtil,dat,tbName);
+                            return  len ;
                         }catch(Exception e) {
                             logger.error("数据同步 exception!",e);
                             return 0;
@@ -351,62 +365,76 @@ public class TbService {
             masterDbUtil.executeUpdate("  delete from EAF_ACM_USER where  EAF_ID = '00000000000000000000000000000000'  and eaf_name is null  " ,new Object[][]{});
 
         }
+        //将从库
         return insertCount;
     }
 
-    private void saveUserMapper(DbUtil masterDbUtil, String tbName, List<Map<String,Object>> data,String dbName) {
-        if ("EAF_ACM_USER".equals(tbName)){
-          String sql = " select * from eaf_acm_user where EAF_LOGINNAME in (";
-          int k=0;
-            String eafId = "";
-            String loginName ="";
-          for (Map m:data) {
-                 eafId = m.get("EAF_ID")+"";
-                 loginName = m.get("EAF_LOGINNAME")+"";
-                 sql+="'"+loginName+"'";
-                 if (k!= data.size()-1) sql+=",";
-                 k++;
-          }
-          sql+=")";
+    private void updateCreator(DbUtil masterDbUtil ,List<Map<String, Object>> dat,String tbName) {
+
+        if ("BIM_QUALITY_PROBLEM".equals(tbName)){
+          String querySql ="-- 查询当前质量表中人员管理为空的eaf_id 也就是现在的eaf_id\n" +
+                    "with tmp as (\n" +
+                    "\n" +
+                    "select t.eaf_creator from \n" +
+                    "(select  (select eaf_name from eaf_acm_user where t.eaf_creator =eaf_id ) user_name,t.* from "+tbName+" t)t\n" +
+                    "where t.user_name is null \n" +
+                    "),\n" +
+                    "\n" +
+                    "--找出这些eaf_id 在记录表中对应的 人员登录名\n" +
+                    "tmp_user as (\n" +
+                    "select m.* from eaf_user_record m where m.eaf_id in (select eaf_creator from tmp)\n" +
+                    "),\n" +
+                    "finall_user as (\n" +
+                    "select  t.eaf_id ,tm.eaf_id t_id ,t.eaf_name  from eaf_acm_user  t inner join tmp_user  tm on t.eaf_loginname =tm.eaf_loginname \n" +
+                    ")\n" +
+                    "\n" +
+                    "select * from finall_user";
             try {
-             List<Map<String,Object>> list =    masterDbUtil.excuteQuery(sql,new Object[][]{});
-             if (list.size()==0) return;
-             boolean flag =false;
-             List<Map<String,Object>> recordList =new ArrayList<>();
-                Map<String,Object> map =new LinkedHashMap<String,Object>();
-                for (Map m: list) {
-                    for (Map mm:data) {
-                        if (( m.get("EAF_LOGINNAME")+"").equals(mm.get("EAF_LOGINNAME")+"")  && !( m.get("EAF_ID")+"").equals(mm.get("EAF_ID")+"")    ){
-                            map =new HashMap<>();
-                            map.put("EAF_ID",UUID.randomUUID().toString());
-                            map.put("EAF_DB_NAME",dbName);
-                            map.put("EAF_TB_NAME",tbName);
-                            map.put("EAF_DU_COL","EAF_ID");
-                            map.put("EAF_DU_COLV",mm.get("EAF_ID"));
-                            map.put("EAF_RE_COL","EAF_LOGINNAME");
-                            map.put("EAF_RE_COLV",mm.get("EAF_LOGINNAME"));
-                            recordList.add(map);
-                            System.out.println("重复的数据为 登录名"+m.get("EAF_LOGINNAME")+"  "+masterDataSource+"库EAF_ID为: "+m.get("EAF_ID")+dbName+"库EAF_ID为： "+mm.get("EAF_ID"));
-                            flag =true;
-                            break;
+                List<Map<String,Object>> list = masterDbUtil.excuteQuery(querySql,new Object[][]{});
+                String currentCreator = "" ;
+                String mapperUser = "" ;
+                for (Map m: dat) {
+                    currentCreator = m.get("EAF_CREATOR")+"" ;
+                    for (Map user: list) {
+                        mapperUser = user.get("T_ID")+"" ;
+                        if (currentCreator.equals(mapperUser)){
+                            m.put("EAF_CREATOR",user.get("EAF_ID")+"" );
                         }
                     }
-
                 }
-                if (flag) {
-                    try {
-                        masterDbUtil.insertTbRecord("EAF_TB_RECORD",recordList);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        logger.error("插入失败----"+e.getMessage());
-                    }
-                }
-
             } catch (SQLException e) {
                 e.printStackTrace();
-                logger.error("查询出错"+e.getSQLState());
+                logger.info("查询人员报错"+querySql);
+            }
+            //更新表的创建用户在当前库不存在的eaf_creator
+
+        }
+
+    }
+
+
+    private void insertRecord(DbUtil masterDbUtil, String tbName, List<Map<String, Object>> data, String dbName) {
+        if ("EAF_ACM_USER".equals(tbName)){
+            List<Map<String,Object>> record =new ArrayList<>();
+            for (Map m:data) {
+                Map<String,Object> recordMap =new LinkedHashMap<>();
+                recordMap.put("EAF_ID",m.get("EAF_ID"));
+                recordMap.put("EAF_DB_NAME",dbName);
+                recordMap.put("EAF_NAME",m.get("EAF_NAME"));
+                recordMap.put("EAF_LOGINNAME",m.get("EAF_LOGINNAME"));
+                record.add(recordMap);
+            }
+
+            try {
+                masterDbUtil.executeUpdate("delete from EAF_USER_RECORD where eaf_db_name ='"+dbName+"'",new Object[][]{});
+                masterDbUtil.insertTbRecord("EAF_USER_RECORD",record);
+            } catch (Exception e) {
+                e.printStackTrace();
+                logger.error("插入用户记录表出错，原因"+e.getMessage());
             }
         }
+      logger.info("----------------------插入用户记录表 success-------------------------");
+
 
     }
 
@@ -651,5 +679,49 @@ public class TbService {
         }
 
         return  list;
+    }
+
+    public String updateUser(String dbName, String tbName, String masterDataSource,  Integer integer, Connection masterConn, Connection slaverConn) {
+        if ("BIM_QUALITY_PROBLEM".equals(tbName)){
+            DbUtil masterDbUtil = new DbUtil(masterConn);
+            String querySql ="-- 查询当前质量表中人员管理为空的eaf_id 也就是现在的eaf_id\n" +
+                    "with tmp as (\n" +
+                    "\n" +
+                    "select t.eaf_creator from \n" +
+                    "(select  (select eaf_name from eaf_acm_user where t.eaf_creator =eaf_id ) user_name,t.* from "+tbName+" t)t\n" +
+                    "where t.user_name is null \n" +
+                    "),\n" +
+                    "\n" +
+                    "--找出这些eaf_id 在记录表中对应的 人员登录名\n" +
+                    "tmp_user as (\n" +
+                    "select m.* from eaf_user_record m where m.eaf_id in (select eaf_creator from tmp)\n" +
+                    "),\n" +
+                    "finall_user as (\n" +
+                    "select  t.eaf_id ,tm.eaf_id t_id ,t.eaf_name  from eaf_acm_user  t inner join tmp_user  tm on t.eaf_loginname =tm.eaf_loginname \n" +
+                    ")\n" +
+                    "\n" +
+                    "select * from finall_user";
+            try {
+                List<Map<String,Object>> list = masterDbUtil.excuteQuery(querySql,new Object[][]{});
+                masterDbUtil.updateTbCreator(list,tbName);
+                String currentCreator = "" ;
+                String mapperUser = "" ;
+              /*  for (Map m: dat) {
+                    currentCreator = m.get("EAF_CREATOR")+"" ;
+                    for (Map user: list) {
+                        mapperUser = user.get("T_ID")+"" ;
+                        if (currentCreator.equals(mapperUser)){
+                            m.put("EAF_CREATOR",user.get("EAF_ID")+"" );
+                        }
+                    }
+                }*/
+            } catch (SQLException e) {
+                e.printStackTrace();
+                logger.info("查询人员报错"+querySql);
+            }
+            //更新表的创建用户在当前库不存在的eaf_creator
+
+        }
+       return "0";
     }
 }

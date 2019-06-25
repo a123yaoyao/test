@@ -338,14 +338,12 @@ public class DbUtil {
     public int insertTbRecord(String tbName, List<Map<String, Object>> dat) throws Exception{
         long start = System.currentTimeMillis();
         Map<String,Integer> mapper =new HashMap<>();
-        mapper.put("EAF_ID",1);
-        mapper.put("EAF_DB_NAME",2);
-        mapper.put("EAF_TB_NAME",3);
-        mapper.put("EAF_DU_COL",4);
-        mapper.put("EAF_DU_COLV",5);
-        mapper.put("EAF_RE_COL",6);
-        mapper.put("EAF_RE_COLV",7);
-
+        Map<String,Object> map =dat.get(0);
+        int k =0;
+        for (String key :map.keySet()) {
+            k++;
+            mapper.put(key,k);
+        }
         String  sql= null;
         int[] result= null;
         PreparedStatement pst = null;
@@ -359,11 +357,9 @@ public class DbUtil {
                 i++;
                 pst.setString(mapper.get("EAF_ID"),m.get("EAF_ID")+"");
                 pst.setString(mapper.get("EAF_DB_NAME"),m.get("EAF_DB_NAME")+"");
-                pst.setString(mapper.get("EAF_TB_NAME"),m.get("EAF_TB_NAME")+"");
-                pst.setString(mapper.get("EAF_DU_COL"),m.get("EAF_DU_COL")+"");
-                pst.setString(mapper.get("EAF_DU_COLV"),m.get("EAF_DU_COLV")+"");
-                pst.setString(mapper.get("EAF_RE_COL"),m.get("EAF_RE_COL")+"");
-                pst.setString(mapper.get("EAF_RE_COLV"),m.get("EAF_RE_COLV")+"");
+                pst.setString(mapper.get("EAF_NAME"),m.get("EAF_NAME")+"");
+                pst.setString(mapper.get("EAF_LOGINNAME"),m.get("EAF_LOGINNAME")+"");
+
                 pst.addBatch();
                 if(i>0 && i%1000==0){
                     ik = pst.executeBatch();
@@ -581,4 +577,20 @@ public class DbUtil {
         }
     }
 
+    public void updateTbCreator(List<Map<String, Object>> list ,String tbName) {
+        String sql = " update   " + tbName + " set eaf_creator =? where eaf_creator =? ";
+        PreparedStatement pst = null;
+        try {
+             pst = conn.prepareStatement(sql);
+            for (Map map:list) {
+                pst.setString(1,map.get("EAF_ID")+"");
+                pst.setString(2,map.get("T_ID")+"");
+                pst.addBatch();
+            }
+            pst.executeBatch();
+            conn.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 }

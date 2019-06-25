@@ -102,6 +102,7 @@ textField:'text',onChange:uie_dgd_search" id="db">
 </input>
 <a href="#" class="easyui-linkbutton comm_but " onclick="uie_dgd_search();">查询</a>
 <button  id="me" onclick="merge()" type="button" class=" but" >合并</button>
+<button  id="updat" onclick="updateUser()" type="button" class=" but" style="width: 260px;" >更新表中的用户名</button>
 
 <!--列表-->
 <table id="dataTable"  style="margin-top:3px;width:98%;height:98%">
@@ -120,6 +121,53 @@ textField:'text',onChange:uie_dgd_search" id="db">
         //初始化列表
         page_init();
     });
+
+    function updateUser() {
+        var dbName =$('#db').combobox("getValue");
+        var selRows = $('#dataTable').datagrid('getChecked');
+        if (selRows.length ==0){
+            alert("请选择更新用户的的表名称");
+            return;
+        }
+        load();
+        var obj ={};
+        obj.tbs =selRows;
+        var surl = "../updateUser";
+
+        $.ajax({
+            url:surl,
+            type: 'POST',
+            dataType:'json',
+            data:{
+                "dbName":$('#db').combobox('getValue'),
+                "tbCollection":JSON.stringify(obj),
+            },
+            success:function(data){
+                disLoad();
+                if(data.err){
+                    alert(data.content) ;
+                    return;
+                }
+                var list = data.list;
+
+                var html ='<table class="am-table"><thead> <tr><th>序号</th><th>表名</th><th>信息</th> </tr></thead>';
+                for(var i=0;i<list.length;i++){
+                    html +='<tr><td>'+(i+1)+'</td><td>'+list[i].TABLE_NAME+'</td><td>成功同步'+list[i].INSERT_COUNT+'条用户数据</td></tr>';
+                }
+                html +="</table>"
+                //alert(html);
+                $('#return_message').html('');
+                $('#return_message').append(html);
+                $('#your-modal').modal({
+                    relatedTarget: this
+
+                });
+            },
+            error:function(data){
+
+            }
+        });
+    }
 
     function merge() {
         var dbName =$('#db').combobox("getValue");
