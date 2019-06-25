@@ -205,18 +205,12 @@ public class TbService {
     ) throws Exception {
         DbUtil masterDbUtil =new DbUtil(masterConn);
         DbUtil salverDbUtil =new DbUtil(slaverConn);
-
-      //  String sql111 = "select  dbms_metadata.get_ddl('TABLE','"+tbName.toUpperCase()+"') TB_SQL from dual";
-       // S = salverDbUtil.getCreateTableSql(sql111,new Object[][]{});
-
-
         int insertCount =0;
         int count =0;
-
         int listCount = salverDbUtil.getCount(" select count(1) from "+tbName,new Object[][]{});
         //多线程数量
         int threads = (listCount %  groupSize ==0)? listCount / groupSize: (listCount /groupSize)+1 ;
-
+        //表结构
         List<Map<String,Object>> tableStructure = null;
         Map<String,Object> param =new HashMap<>();
         //查询被导入数据库的表结构
@@ -228,10 +222,7 @@ public class TbService {
 
         if (0 == count) {//若不存在则主数据源创建新表
             getCreateTableSql(tbName, tb, param);
-            String sql //= "select  to_char(dbms_metadata.get_ddl('TABLE','"+tbName.toUpperCase()+"')) TB_SQL from dual";
-               = "select  dbms_metadata.get_ddl('TABLE','"+tbName.toUpperCase()+"') TB_SQL from dual";
-            //List<Map<String, Object>> tbCreateList = salverDbUtil.excuteQuery(sql,new Object[][]{});
-            //sql  =tbCreateList.get(0).get("TB_SQL")+"";
+            String sql = "select  dbms_metadata.get_ddl('TABLE','"+tbName.toUpperCase()+"') TB_SQL from dual";
             sql = salverDbUtil.getCreateTableSql(sql,new Object[][]{});
             String  createSalver =  "CREATE TABLE \""+dbName.toUpperCase()+"\"" +".\""+tbName.toUpperCase() +"\"";
             String createMaster  =  "CREATE TABLE \""+masterDataSource.toUpperCase()+"\""+".\""+tbName.toUpperCase() +"\"";
@@ -279,9 +270,7 @@ public class TbService {
 
         long queryStart =System.currentTimeMillis();
         //查询某个库下的某个表的所有数据
-        List<Map<String, Object>> data =
-                getDataByMulitThreads( dbName , tbName, masterDataSource,   groupSize, masterConn, slaverConn);
-               // selectAllByDbAndTb(dbName, tbName,salverDbUtil,null,null);
+        List<Map<String, Object>> data =  getDataByMulitThreads( dbName , tbName, masterDataSource,   groupSize, masterConn, slaverConn);
         if (data.size()==0) return 0;
         if (data.size()<groupSize) threads =1; //如果同步的数据太少 小于切割的数据条数 则只用一个线程
         Map<String,Object> m =(Map<String,Object>)data.get(0);
@@ -289,22 +278,15 @@ public class TbService {
         logger.info("查询"+dbName+"库 中表名为"+tbName+"的所有数据花费时间为"+(queryEnd-queryStart)/1000+"秒");
         //对数据进行切分
         int cutSize = groupSize ;//每个线程处理的数据量
-
         List<List<Map<String, Object>>> newData = CollectionUtil.splitList(data, cutSize);
-
         //批量删除重复的数据
         int delCount = batchDelete(paramsMap, tbName, data, masterDbUtil,salverDbUtil);
-
         //判断该表是否使用批处理
       //  boolean isUseBatch = checTableIsUseBatch(tbName);
-
         if (threads == 1 ){ //不开启多线程
             for (List<Map<String, Object>> dat : newData) {
                 insertRecord(masterDbUtil,tbName,dat,dbName);//插入记录
                 insertCount += masterDbUtil.batchInsertJsonArry(tbName,dat,tb);
-                //先测试一张表
-                //更新表的创建用户在当前库不存在的eaf_creator
-                 updateCreator(masterDbUtil,dat,tbName);
             }
         }else{
             final BlockingQueue<Future<Integer>> queue = new LinkedBlockingQueue<>();
@@ -312,18 +294,13 @@ public class TbService {
             List<Future<Integer>> results = new ArrayList<Future<Integer>>();
             final ExecutorService exec = Executors.newFixedThreadPool(threads);
             for (List<Map<String, Object>> dat : newData ) {
-                Future<Integer> future= //(Future<Integer>) threadPoolUtils
-                        exec.submit(new Callable<Integer>(){
+                Future<Integer> future=   exec.submit(new Callable<Integer>(){
                     @Override
                     public Integer call() {
                         try {
 
                             insertRecord(masterDbUtil,tbName,dat,dbName);//插入记录
-                            int len =  //masterDbUtil. insert(tbName,dat,tb,isUseBatch);
-                                    masterDbUtil. batchInsertJsonArry(tbName,dat,tb);
-                            //先测试一张表
-                            //更新表的创建用户在当前库不存在的eaf_creator
-                            updateCreator(masterDbUtil,dat,tbName);
+                            int len =    masterDbUtil. batchInsertJsonArry(tbName,dat,tb);
                             return  len ;
                         }catch(Exception e) {
                             logger.error("数据同步 exception!",e);
@@ -366,48 +343,7 @@ public class TbService {
         return insertCount;
     }
 
-    private void updateCreator(DbUtil masterDbUtil ,List<Map<String, Object>> dat,String tbName) {
 
-        if ("BIM_QUALITY_PROBLEM".equals(tbName)){
-          String querySql ="-- 查询当前质量表中人员管理为空的eaf_id 也就是现在的eaf_id\n" +
-                    "with tmp as (\n" +
-                    "\n" +
-                    "select t.eaf_creator from \n" +
-                    "(select  (select eaf_name from eaf_acm_user where t.eaf_creator =eaf_id ) user_name,t.* from "+tbName+" t)t\n" +
-                    "where t.user_name is null \n" +
-                    "),\n" +
-                    "\n" +
-                    "--找出这些eaf_id 在记录表中对应的 人员登录名\n" +
-                    "tmp_user as (\n" +
-                    "select m.* from eaf_user_record m where m.eaf_id in (select eaf_creator from tmp)\n" +
-                    "),\n" +
-                    "finall_user as (\n" +
-                    "select  t.eaf_id ,tm.eaf_id t_id ,t.eaf_name  from eaf_acm_user  t inner join tmp_user  tm on t.eaf_loginname =tm.eaf_loginname \n" +
-                    ")\n" +
-                    "\n" +
-                    "select * from finall_user";
-            try {
-                List<Map<String,Object>> list = masterDbUtil.excuteQuery(querySql,new Object[][]{});
-                String currentCreator = "" ;
-                String mapperUser = "" ;
-                for (Map m: dat) {
-                    currentCreator = m.get("EAF_CREATOR")+"" ;
-                    for (Map user: list) {
-                        mapperUser = user.get("T_ID")+"" ;
-                        if (currentCreator.equals(mapperUser)){
-                            m.put("EAF_CREATOR",user.get("EAF_ID")+"" );
-                        }
-                    }
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
-                logger.info("查询人员报错"+querySql);
-            }
-            //更新表的创建用户在当前库不存在的eaf_creator
-
-        }
-
-    }
 
 
     private void insertRecord(DbUtil masterDbUtil, String tbName, List<Map<String, Object>> data, String dbName) {
@@ -421,16 +357,49 @@ public class TbService {
                 recordMap.put("EAF_LOGINNAME",m.get("EAF_LOGINNAME"));
                 record.add(recordMap);
             }
+            Map<String,Integer> mapper =new HashMap<>();
+            Map<String,Object> map =record.get(0);
+            int k =0;
+            for (String key :map.keySet()) {
+                k++;
+                mapper.put(key,k);
+            }
 
             try {
                 masterDbUtil.executeUpdate("delete from EAF_USER_RECORD where eaf_db_name ='"+dbName+"'",new Object[][]{});
-                masterDbUtil.insertTbRecord("EAF_USER_RECORD",record);
+                masterDbUtil.insertTbRecord("EAF_USER_RECORD",record,mapper);
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error("插入用户记录表出错，原因"+e.getMessage());
             }
         }
-      logger.info("----------------------插入用户记录表 success-------------------------");
+        if ("EAF_ACM_ORG".equals(tbName)){
+            List<Map<String,Object>> record =new ArrayList<>();
+            for (Map m:data) {
+                Map<String,Object> recordMap =new LinkedHashMap<>();
+                recordMap.put("EAF_ID",m.get("EAF_ID"));
+                recordMap.put("EAF_DB_NAME",dbName);
+                recordMap.put("EAF_NAME",m.get("EAF_NAME"));
+                recordMap.put("BIM_NUM",m.get("BIM_NUM"));
+                record.add(recordMap);
+            }
+            Map<String,Integer> mapper =new HashMap<>();
+            Map<String,Object> map =record.get(0);
+            int k =0;
+            for (String key :map.keySet()) {
+                k++;
+                mapper.put(key,k);
+            }
+
+            try {
+                masterDbUtil.executeUpdate("delete from EAF_ORG_RECORD where eaf_db_name ='"+dbName+"'",new Object[][]{});
+                masterDbUtil.insertTbRecord("EAF_ORG_RECORD",record,mapper);
+            } catch (Exception e) {
+                e.printStackTrace();
+                logger.error("插入记录表出错，原因"+e.getMessage());
+            }
+        }
+      logger.info("----------------------插入记录表 success-------------------------");
 
 
     }
@@ -552,11 +521,14 @@ public class TbService {
     }
 
     /**
-     * 通过库名和表名查询所有数据
+     *
      * @param dbName
      * @param tbName
-     * @param paramsMap
+     * @param dbUtil
+     * @param startIndex
+     * @param maxIndex
      * @return
+     * @throws SQLException
      */
     private List<Map<String,Object>> selectAllByDbAndTb(String dbName, String tbName,  DbUtil dbUtil,Integer startIndex,Integer maxIndex) throws SQLException {
 
@@ -568,8 +540,7 @@ public class TbService {
                      "WHERE RN > "+startIndex;
          }
 
-
-        System.out.println(sql);
+        logger.info(sql);
         return dbUtil.excuteQuery(sql,new Object[][]{});
     }
 
@@ -660,17 +631,14 @@ public class TbService {
         List<Map<String,Object>> list =new ArrayList<>();
         JSONArray jsonArray = JSONArray.parseArray(dbArray);
         JSONObject jsonObject =null;
-
         for (int i = 0; i <jsonArray.size() ; i++) {
             jsonObject = (JSONObject) jsonArray.get(i);
             Map<String,Object> map =new HashMap<>();
             map.put("id",jsonObject.get("value")+"");
             map.put("text",jsonObject.get("text")+"");
-
             if (masterDataSource.equals(jsonObject.get("value")+"")){
                 map.put("IS_MASTER",1);
                 map.put("selected",true);
-
             }else map.put("IS_MASTER",0);
             list.add(map);
         }
@@ -717,46 +685,7 @@ public class TbService {
             } catch (SQLException e) {
                 e.printStackTrace();
             }
-
-
-
-
         }
-
-      /*  int i=0;
-        //第一种表
-        if ("BIM_QUALITY_PROBLEM".equals(tbName)){
-            i =1 ;
-        }
-        if ( i ==1){
-
-            String querySql ="-- 查询当前质量表中人员管理为空的eaf_id 也就是现在的eaf_id\n" +
-                    "with tmp as (\n" +
-                    "\n" +
-                    "select t.eaf_creator from \n" +
-                    "(select  (select eaf_name from eaf_acm_user where t.eaf_creator =eaf_id ) user_name,t.* from "+tbName+" t)t\n" +
-                    "where t.user_name is null \n" +
-                    "),\n" +
-                    "\n" +
-                    "--找出这些eaf_id 在记录表中对应的 人员登录名\n" +
-                    "tmp_user as (\n" +
-                    "select m.* from eaf_user_record m where m.eaf_id in (select eaf_creator from tmp)\n" +
-                    "),\n" +
-                    "finall_user as (\n" +
-                    "select  t.eaf_id ,tm.eaf_id t_id ,t.eaf_name  from eaf_acm_user  t inner join tmp_user  tm on t.eaf_loginname =tm.eaf_loginname \n" +
-                    ")\n" +
-                    "\n" +
-                    "select * from finall_user";
-            try {
-                List<Map<String,Object>> list = masterDbUtil.excuteQuery(querySql,new Object[][]{});
-                masterDbUtil.updateTbCreator(list,tbName);
-            } catch (SQLException e) {
-                e.printStackTrace();
-                logger.info("查询人员报错"+querySql);
-            }
-            //更新表的创建用户在当前库不存在的eaf_creator
-
-        }*/
        return len+"";
     }
 

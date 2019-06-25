@@ -179,6 +179,7 @@ public class DbUtil {
             conn.commit();
         } catch (SQLException e) {
             logger.error(e.getMessage());
+            e.fillInStackTrace();
 
         }/* finally {
                 closeAll();
@@ -335,15 +336,15 @@ public class DbUtil {
 
     }
 
-    public int insertTbRecord(String tbName, List<Map<String, Object>> dat) throws Exception{
+    public int insertTbRecord(String tbName, List<Map<String, Object>> dat,Map<String,Integer> mapper) throws Exception{
         long start = System.currentTimeMillis();
-        Map<String,Integer> mapper =new HashMap<>();
+       /* Map<String,Integer> mapper =new HashMap<>();
         Map<String,Object> map =dat.get(0);
         int k =0;
         for (String key :map.keySet()) {
             k++;
             mapper.put(key,k);
-        }
+        }*/
         String  sql= null;
         int[] result= null;
         PreparedStatement pst = null;
@@ -355,11 +356,9 @@ public class DbUtil {
             int ik[] =null;
             for (Map m :  dat) {
                 i++;
-                pst.setString(mapper.get("EAF_ID"),m.get("EAF_ID")+"");
-                pst.setString(mapper.get("EAF_DB_NAME"),m.get("EAF_DB_NAME")+"");
-                pst.setString(mapper.get("EAF_NAME"),m.get("EAF_NAME")+"");
-                pst.setString(mapper.get("EAF_LOGINNAME"),m.get("EAF_LOGINNAME")+"");
-
+                for (String column:mapper.keySet()) {
+                    pst.setString(mapper.get(column),m.get(column)==null ? null : m.get(column)+"");
+                }
                 pst.addBatch();
                 if(i>0 && i%1000==0){
                     ik = pst.executeBatch();
@@ -367,23 +366,18 @@ public class DbUtil {
                     //清除批处理命令
                     pst.clearBatch();
                     //如果不想出错后，完全没保留数据，则可以每执行一次提交一次，但得保证数据不会重复
-
                 }
             }
             ik = pst.executeBatch();
             conn.commit();
             pst.clearBatch();
-
             long end = System.currentTimeMillis();
-            logger.info("记录表批量插入了:"+dat.size()+"条数据 需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
+            logger.info("记录表"+tbName+"批量插入了:"+dat.size()+"条数据 需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
             int len= dat.size() ;
             return len;
         } catch (Exception e) {
             logger.error(sql.toString()+e.getMessage());
-
-        }/*finally {
-            closeAll();
-        }*/
+        }
         return 0;
 
     }
