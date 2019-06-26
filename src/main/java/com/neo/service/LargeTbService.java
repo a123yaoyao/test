@@ -133,7 +133,8 @@ public class LargeTbService{
        int  dataNums =  checkTable(tbName);
        if (dataNums==0){//若不存在则主数据源创建新表
            String sql = "select  dbms_metadata.get_ddl('TABLE','"+tbName.toUpperCase()+"') TB_SQL from dual";
-           sql = new JDBCUtil(masterDataSource).getCreateTableSql(sql,new Object[][]{});
+           //从库查询创建表的sql语句
+           sql = new JDBCUtil(dbName).getCreateTableSql(sql,new Object[][]{});
            String  createSalver =  "CREATE TABLE \""+dbName.toUpperCase()+"\"" +".\""+tbName.toUpperCase() +"\"";
            String createMaster  =  "CREATE TABLE \""+masterDataSource.toUpperCase()+"\""+".\""+tbName.toUpperCase() +"\"";
            sql = sql.replace(createSalver,createMaster);

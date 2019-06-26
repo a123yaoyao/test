@@ -77,6 +77,7 @@ public class JDBCUtil {
 
     public List<Map<String, Object>> excuteQuery(String sql, Object[] params) throws SQLException {
         long start =System.currentTimeMillis();
+
         // 执行SQL获得结果集
         ResultSet rs = executeQueryRS(sql, params);
         // 创建ResultSetMetaData对象
@@ -109,7 +110,7 @@ public class JDBCUtil {
             closeAll();
         }
         long end =System.currentTimeMillis();
-        logger.info("线程"+Thread.currentThread().getName()+"查询花费时间"+((end-start)/1000)+"s");
+        logger.info("线程"+Thread.currentThread().getName()+"查询sql:"+sql+"花费时间"+((end-start)/1000)+"s");
         return list;
     }
 
