@@ -109,7 +109,7 @@ public class JDBCUtil {
             closeAll();
         }
         long end =System.currentTimeMillis();
-        logger.error("线程"+Thread.currentThread().getName()+"查询花费时间"+((end-start)/1000)+"s");
+        logger.info("线程"+Thread.currentThread().getName()+"查询花费时间"+((end-start)/1000)+"s");
         return list;
     }
 

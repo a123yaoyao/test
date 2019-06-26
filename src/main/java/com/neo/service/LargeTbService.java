@@ -177,7 +177,7 @@ public class LargeTbService{
                    }
                    sql+=" ) ";
                    new JDBCUtil(masterDataSource).executeUpdate(sql,new Object[][]{});
-                   logger.info("为"+masterDataSource+"库添加"+cloumnName+"字段成功！");
+                   logger.info("为"+masterDataSource+"库 "+tbName+"添加"+cloumnName+"字段成功！");
                }
            }
        }
@@ -186,8 +186,10 @@ public class LargeTbService{
 
     private int checkTable(String tbName) throws SQLException {
       String  sql =" SELECT COUNT(*) TABLE_NUMS FROM User_Tables WHERE table_name = '"+tbName+"' " ;
-      List<Map<String,Object>> listCount = new JDBCUtil(masterDataSource).excuteQuery(sql,new Object[][]{});
-      return listCount.size();
+      List<Map<String,Object>> list = new JDBCUtil(masterDataSource).excuteQuery(sql,new Object[][]{});
+      String count =list.get(0).get("TABLE_NUMS")+"";
+      if ("1".equals(count) ) return 1;
+      else return 0;
     }
 
     /**
