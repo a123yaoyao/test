@@ -334,8 +334,8 @@ public class TbService {
         }
 
         // 对表数据进行特殊业务处理
-        TbDealDTO tbDealDTO =new TbDealDTO( tbName,masterDbUtil, addColumns);
-        tbDealDTO.dealWithTbProblem();
+       // TbDealDTO tbDealDTO =new TbDealDTO( tbName,masterDbUtil, addColumns);
+       // tbDealDTO.dealWithTbProblem();
         //将从库
         return insertCount;
     }

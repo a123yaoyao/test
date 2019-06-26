@@ -1,5 +1,6 @@
 package com.neo.service;
 
+import com.neo.model.DTO.TbDealDTO;
 import com.neo.task.TaskTbMerge;
 import com.neo.util.JDBCUtil;
 import org.apache.log4j.Logger;
@@ -71,10 +72,11 @@ public class LargeTbService{
         int threads = getThreads(dataNums);
         //对比主库和从库创建表或者增加修改列
         String addColumns = createTable(tbName,dbName);
+        if (dataNums ==0 ) return 0;//如果数据查询为0条直接返回
         int insertCount = insertTbData(threads,dbName,tbName,dataNums);
         // 对表数据进行特殊业务处理
-       // TbDealDTO tbDealDTO =new TbDealDTO( tbName,masterDataSource, addColumns);
-       // tbDealDTO.dealWithTbProblem();
+        TbDealDTO tbDealDTO =new TbDealDTO( tbName,masterDataSource, addColumns);
+        tbDealDTO.dealWithTbProblem();
         return  insertCount;
     }
 
