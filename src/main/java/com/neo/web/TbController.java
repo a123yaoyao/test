@@ -51,7 +51,8 @@ public class TbController  {
 
     @RequestMapping("/")
     public String index() {
-       return "user_list";
+       return "index";
+               //"user_list";
     }
 
     @RequestMapping("/getAllByDB")

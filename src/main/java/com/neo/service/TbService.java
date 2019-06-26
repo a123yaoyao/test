@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
@@ -375,6 +376,12 @@ public class TbService {
                 Map<String,Object> recordMap =new LinkedHashMap<>();
                 recordMap.put("EAF_ID",m.get("EAF_ID"));
                 recordMap.put("EAF_DB_NAME",dbName);
+                String name1 = m.get("EAF_NAME")+"" ;
+                try {
+                    name1 =  new String(name1.getBytes("ISO-8859-1"),"UTF-8");
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
                 recordMap.put("EAF_NAME",m.get("EAF_NAME"));
                 recordMap.put("BIM_NUM",m.get("BIM_NUM"));
                 record.add(recordMap);
