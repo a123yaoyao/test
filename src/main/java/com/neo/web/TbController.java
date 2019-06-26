@@ -125,7 +125,7 @@ public class TbController  {
                 count = salverDbUtil.getCount("select count(*) from "+tbName,new Object[][]{});
                 resultMap = new HashMap();
                 resultMap.put("TABLE_NAME", tbName);
-                if (count<1){
+                if (count<3000){
                     insertCount =tbService.mergeData(dbName, tbName, masterDataSource, list, Integer.valueOf(groupSiz),masterConn,slaverConn)+"";
                 }else{
                     insertCount = largeTbService. mergeData( count, tbName, dbName)+"";

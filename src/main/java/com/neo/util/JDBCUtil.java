@@ -401,21 +401,33 @@ public class JDBCUtil {
            java.sql.Timestamp timestampValue = null;
            boolean flag;
            Map<String, String> structureMap = new LinkedHashMap<>();
-           for (Map<String, Object> structure : tbstruct) {
+           for (Map<String, Object> structure : tbstruct) { //表 字段名和字段类型映射
                cloumnName = structure.get("COLUMN_NAME") + "";
                dataType = structure.get("DATA_TYPE") + "";
                structureMap.put(cloumnName, dataType);
            }
 
+            Map<String, Integer> nameIndexMapper = new LinkedHashMap<>();
+
+            Map<String, Object> insertMap = (Map<String, Object>) dat.get(0);
+
+            int mapperFlag =0;
+            for (String  col : insertMap.keySet()) { //表 字段名和字段类型映射
+                mapperFlag++;
+                nameIndexMapper.put(col,mapperFlag);
+            }
+
            for (int i = 0; i < dat.size(); i++) {
                ma = (Map<String, Object>) dat.get(i);
                int j = 0;
+               //System.out.println("EAF_R_RIGHTID 长度："+(ma.get("EAF_R_RIGHTID")+"").length()) ;
                for (String k : ma.keySet()) {
                    value = ma.get(k) + "";
 
                    if ("null".equals(value.trim())) value = null;
                    flag = false;
                    dataType = structureMap.get(k);
+                   mapperFlag = nameIndexMapper.get(k);
                    if (("DATE".equals(dataType) && value != null)) {
                        value = value.substring(0, value.indexOf("."));
                        timestampValue = DateUtil.strToTimeStamp(value);
@@ -424,9 +436,10 @@ public class JDBCUtil {
                    if (("CLOB".equals(dataType) || "BLOB".equals(dataType)) && value != null) {
                        value = getValueByType(ma, k, dataType);
                    }
-                   if (flag) {
-                       pst.setTimestamp(j + 1, timestampValue);
-                   } else pst.setString(j + 1, value);
+                   if (flag) {//数据库date类型
+                        pst.setTimestamp(mapperFlag, timestampValue);
+                      // pst.setTimestamp(j + 1, timestampValue);
+                   } else pst.setString(mapperFlag, value);
                    j++;
                }
                pst.addBatch();
@@ -448,7 +461,7 @@ public class JDBCUtil {
            logger.error(e.getMessage());
        }
         finally {
-           closeAll();
+          // closeAll();
            return ik;
         }
     }
