@@ -125,14 +125,20 @@ public class TbController  {
                 count = salverDbUtil.getCount("select count(*) from "+tbName,new Object[][]{});
                 resultMap = new HashMap();
                 resultMap.put("TABLE_NAME", tbName);
-                insertCount = largeTbService. mergeData( count, tbName, dbName)+"";
-               /* if (count<2000){
+                if (count<1){
                     insertCount =tbService.mergeData(dbName, tbName, masterDataSource, list, Integer.valueOf(groupSiz),masterConn,slaverConn)+"";
                 }else{
                     insertCount = largeTbService. mergeData( count, tbName, dbName)+"";
-                }*/
+                }
                 resultMap.put("INSERT_COUNT",insertCount );
                 result.add(resultMap);
+                k++;
+                if (k %50 == 0){//循环50次就关一次连接再重新获取、、
+                    closeConn(masterConn,slaverConn);
+                    masterConn = DataSourceHelper.GetConnection(masterDataSource);
+                    slaverConn = DataSourceHelper.GetConnection(dbName);
+                    salverDbUtil =new DbUtil(slaverConn);
+                }
             }
             resu.put("list",result);
             Long end =   System.currentTimeMillis();
@@ -143,17 +149,46 @@ public class TbController  {
             resu.put("content",e.getMessage());
             logger.error(e.getMessage());
         }finally {
-            if (null!=masterConn){
+
+            closeConn(masterConn,slaverConn);
+
+           /* if (null!=masterConn){
                 masterConn.close();
             }
             if (null!=slaverConn){
                 slaverConn.close();
-            }
+            }*/
         }
 
         return StringUtils.MapToString(resu);
 
 
+    }
+
+    private void closeConn(Connection masterConn, Connection slaverConn) {
+
+        try {
+            if (null!=masterConn && !masterConn.isClosed()){
+                try {
+                    masterConn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        try {
+            if (null!=slaverConn && !slaverConn.isClosed()){
+                try {
+                    slaverConn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     @RequestMapping("/updateUser")

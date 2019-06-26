@@ -110,7 +110,7 @@ public class JDBCUtil {
             closeAll();
         }
         long end =System.currentTimeMillis();
-        logger.info("线程"+Thread.currentThread().getName()+"查询sql:"+sql+"花费时间"+((end-start)/1000)+"s");
+        //logger.info("线程"+Thread.currentThread().getName()+"查询sql:"+sql+"花费时间"+((end-start)/1000)+"s");
         return list;
     }
 
@@ -303,7 +303,7 @@ public class JDBCUtil {
             pst = conn.prepareStatement(sql);
             result =  insertBatch(tbName , newData, pst,tbstruct);
             long end = System.currentTimeMillis();
-            logger.info("批量插入了:"+newData.size()+"条数据 需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
+            logger.info(tbName+"表批量插入了:"+newData.size()+"条数据 需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
             int len= newData.size() ;
             newData =null;
             return len;
@@ -448,7 +448,7 @@ public class JDBCUtil {
            logger.error(e.getMessage());
        }
         finally {
-            closeAll();
+           closeAll();
            return ik;
         }
     }
