@@ -65,7 +65,14 @@ public class LargeTbService{
         return 1000;
     }
 
-
+    /**
+     * 数据合并
+     * @param dataNums 从库表数据条数
+     * @param tbName   表名
+     * @param dbName   库名
+     * @return
+     * @throws Exception
+     */
     public Integer mergeData(int dataNums,String tbName,String dbName) throws Exception {
         long startTime =System.currentTimeMillis();//合并数据开始时间
         //获得线程数量
@@ -80,6 +87,15 @@ public class LargeTbService{
         return  insertCount;
     }
 
+    /**
+     * 插入数据
+     * @param threads 线程数
+     * @param dbName  库名
+     * @param tbName  表名
+     * @param dataCount 从库数据条数
+     * @return
+     * @throws Exception
+     */
     private int insertTbData(int threads,String dbName,String tbName,int dataCount) throws Exception {
         int insertCount =0 ;
         if (threads==1){
@@ -105,6 +121,13 @@ public class LargeTbService{
         return insertCount;
     }
 
+    /**
+     * 创建表或修改添加列
+     * @param tbName
+     * @param dbName
+     * @return
+     * @throws SQLException
+     */
     private String createTable(String tbName,String dbName) throws SQLException {
        String addColumns ="";
        int  dataNums =  checkTable(tbName);
