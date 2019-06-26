@@ -1,3 +1,4 @@
+/*
 package com.neo.util;
 
 import com.alibaba.fastjson.JSONArray;
@@ -14,16 +15,20 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 
+*/
 /**
  * @Auther: Administrator
  * @Date: 2019/5/13/013 18:46
  * @Description:
- */
+ *//*
+
 public class SyncTask implements Callable<Integer>{
 
-    /**
+    */
+/**
      * 日志对象
-     */
+     *//*
+
     private Logger logger = Logger.getLogger(SyncTask.class);
 
 
@@ -51,12 +56,14 @@ public class SyncTask implements Callable<Integer>{
         this.uniqueConstraint =uniqueConstraint;
     }
 
-    /**
+    */
+/**
      * Computes a result, or throws an exception if unable to do so.
      *
      * @return computed result
      * @throws Exception if unable to compute a result
-     */
+     *//*
+
     @Override
     public Integer call() throws Exception {
         JDBCUtil salver  = new JDBCUtil(dbName);
@@ -77,17 +84,19 @@ public class SyncTask implements Callable<Integer>{
          master.batchInsert(tbName,result);
          long end = System.currentTimeMillis();
          printMessage(start,end);
-        endLock.countDown();//计时器减1
+         endLock.countDown();//计时器减1
         return  len ;
 
     }
 
-    /**
+    */
+/**
      * 批量删除重复的数据
      * @param data
      * @return
      * @throws Exception
-     */
+     *//*
+
     private int batchDelete(List<Map<String, Object>> data) throws Exception {
         JDBCUtil masterDbUtil =new JDBCUtil(masterDataSource);
         //获得列表中的唯一键
@@ -98,11 +107,13 @@ public class SyncTask implements Callable<Integer>{
     }
 
 
-    /**
+    */
+/**
      * 获得唯一约束
      * @param dbUtil
      * @return
-     */
+     *//*
+
     private List<Map<String, Object>> getUniqueConstriant( JDBCUtil dbUtil) throws Exception {
         List<Map<String, Object>> list = null;
 
@@ -171,3 +182,4 @@ public class SyncTask implements Callable<Integer>{
 
 
 }
+*/

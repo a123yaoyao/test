@@ -1,3 +1,4 @@
+/*
 package com.neo.service;
 
 import com.neo.util.CollectionUtil;
@@ -17,17 +18,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 
+*/
 /**
  * @Auther: Administrator
  * @Date: 2019/5/13/013 16:55
  * @Description:
- */
+ *//*
+
 @Service
 public class TableService {
 
-    /**
+    */
+/**
      * 日志对象
-     */
+     *//*
+
     private Logger logger = Logger.getLogger(TbService.class);
 
     @Value("${spring.master.datasource}")
@@ -78,7 +83,8 @@ public class TableService {
         return 1000;
     }
 
-    /**
+    */
+/**
      * 合并数据
      * @param dbName
      * @param tbName
@@ -88,7 +94,8 @@ public class TableService {
      * @return
      * @throws IOException
      * @throws SQLException
-     */
+     *//*
+
     public Integer mergeData(String dbName , String tbName, String masterDataSource, List<Map<String,Object>> list, int groupSize,
                              Connection masterConn, Connection slaverConn
     ) throws Exception {
@@ -155,8 +162,12 @@ public class TableService {
     private int getCount(String  dbName,String tbName) {
         String sql =" select count(1) from "+tbName;
         JDBCUtil util =new JDBCUtil(dbName);
-        return util.getCount(sql,new Object[][]{});
-
+        try {
+            return util.getCount(sql,new Object[][]{});
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 
     private List<Map<String,Object>> selectAllByDbAndTb(String dbName, String tbName, Integer startIndex, Integer maxIndex) {
@@ -228,3 +239,4 @@ public class TableService {
         return  util.excuteQuery(sql,new Object[][]{});
     }
 }
+*/

@@ -54,13 +54,13 @@ public class TbService {
 
     int getThreads(int dataCount){
         if (dataCount>1000 && dataCount<=10000){
-            return dataCount%1000==0? dataCount/1000:dataCount/1000+1;
-        }
-        if (dataCount>10000 && dataCount<=100000){
             return dataCount%2000==0? dataCount/2000:dataCount/2000+1;
         }
-        if (dataCount>100000 && dataCount<=1000000){
+        if (dataCount>10000 && dataCount<=100000){
             return dataCount%5000==0? dataCount/5000:dataCount/5000+1;
+        }
+        if (dataCount>100000 && dataCount<=1000000){
+            return dataCount%10000==0? dataCount/10000:dataCount/10000+1;
         }
         if (dataCount>1000000 && dataCount<=10000000){
             return dataCount%10000==0? dataCount/10000:dataCount/10000+1;
@@ -70,13 +70,13 @@ public class TbService {
 
     int getGroupSize(int dataCount){
         if (dataCount>1000 && dataCount<=10000){
-            return 1000;
-        }
-        if (dataCount>10000 && dataCount<=100000){
             return 2000;
         }
-        if (dataCount>100000 && dataCount<=1000000){
+        if (dataCount>10000 && dataCount<=100000){
             return 5000;
+        }
+        if (dataCount>100000 && dataCount<=1000000){
+            return 10000;
         }
         if (dataCount>1000000 && dataCount<=10000000){
             return 10000;
@@ -306,7 +306,7 @@ public class TbService {
         }else{
             final BlockingQueue<Future<Integer>> queue = new LinkedBlockingQueue<>();
             final CountDownLatch  endLock = new CountDownLatch(threads); //结束门
-            List<Future<Integer>> results = new ArrayList<Future<Integer>>();
+            //List<Future<Integer>> results = new ArrayList<Future<Integer>>();
             final ExecutorService exec = Executors.newFixedThreadPool(threads);
             for (List<Map<String, Object>> dat : newData ) {
                 Future<Integer> future=   exec.submit(new Callable<Integer>(){

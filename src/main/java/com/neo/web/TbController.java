@@ -4,7 +4,8 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.neo.service.TableService;
+import com.neo.service.LargeTbService;
+//import com.neo.service.TableService;
 import com.neo.service.TbService;
 import com.neo.util.DataSourceHelper;
 import com.neo.util.DbUtil;
@@ -32,8 +33,10 @@ public class TbController  {
     @Autowired
     TbService tbService;
 
+   /* @Autowired
+    TableService tableService;*/
     @Autowired
-    TableService tableService;
+    LargeTbService largeTbService;
 
     @Value("${spring.master.datasource}")
     public String masterDataSource;
@@ -115,14 +118,19 @@ public class TbController  {
             list = getParamList(tbCollection, "tbs");
             int k=0;
             int count=0;
+            String insertCount ="";
             DbUtil salverDbUtil =new DbUtil(slaverConn);
             for (Map<String, Object> map : list) {
-
                 tbName = map.get("TABLE_NAME") + "";
                 count = salverDbUtil.getCount("select count(*) from "+tbName,new Object[][]{});
                 resultMap = new HashMap();
                 resultMap.put("TABLE_NAME", tbName);
-                 resultMap.put("INSERT_COUNT", tbService.mergeData(dbName, tbName, masterDataSource, list, Integer.valueOf(groupSiz),masterConn,slaverConn)+"");
+                if (count<2000){
+                    insertCount =tbService.mergeData(dbName, tbName, masterDataSource, list, Integer.valueOf(groupSiz),masterConn,slaverConn)+"";
+                }else{
+                    insertCount = largeTbService. mergeData( count, tbName, dbName)+"";
+                }
+                resultMap.put("INSERT_COUNT",insertCount );
                 result.add(resultMap);
             }
             resu.put("list",result);
