@@ -44,7 +44,7 @@ public class TbService {
     @Value("${uniqueConstraint}")
     public String uniqueConstraint;
 
-    @Value("${tbUserId}")
+    @Value("${tbUserIds}")
     public String tbUserId;
 
     @Value("${threadNum}")
@@ -237,6 +237,7 @@ public class TbService {
 
             logger.info("*****************创建"+tbName+"成功！***************** ");
         }else{//若存在则比较
+            //主库表结构
             List<Map<String, Object>> masterTb = selectTableStructureByDbAndTb( tbName,masterDbUtil);
             String cloumnName ;
             String dataType ;
@@ -247,7 +248,19 @@ public class TbService {
                 dataType = tbMap.get("DATA_TYPE")+"" ;
                 dataLength = tbMap.get("DATA_LENGTH");
                 for (Map<String, Object> masterTbMap:masterTb) {
-                    if (masterTbMap.containsValue(cloumnName)){
+                    if (masterTbMap.containsValue(cloumnName)){//若主库表中字段和从库字段一样 判断长度 取最大的
+                        if ("VARCHAR".equals(dataType) || "VARCHAR2".equals(dataType) || "CHAR".equals(dataType)){
+                            int len1 =(Integer.valueOf(dataLength+"")) ;
+                            int len2 =(Integer.valueOf(masterTbMap.get("DATA_LENGTH")+"")) ;
+                            if (len2>len1){
+                                String sql = " alter table "+tbName+" modify ("+cloumnName+" "+dataType+"("+len2+"))";
+                                masterDbUtil.executeUpdate(sql,new Object[][]{});
+                            }
+                            if (len1>len2){
+                                String sql = " alter table "+tbName+" modify ("+cloumnName+" "+dataType+"("+len1+"))";
+                                masterDbUtil.executeUpdate(sql,new Object[][]{});
+                            }
+                        }
                         flag = true;
                         break;
                     }
@@ -322,28 +335,6 @@ public class TbService {
         // 对表数据进行特殊业务处理
         TbDealDTO tbDealDTO =new TbDealDTO( tbName,masterDbUtil, addColumns);
         tbDealDTO.dealWithTbProblem();
-
-/*        if (tbName.equals("EAF_DMM_METAATTR_L") || tbName.equals("EAF_DMM_METACLASS_L")){
-            masterDbUtil.executeUpdate("delete from "+tbName+" where eaf_lid is null or eaf_lid !='6BEB598696F4116772AF9E03EFC7E962' ",new Object[][]{});
-        }
-        if (tbName.equals("EAF_ACM_ONLINE") ){
-            masterDbUtil.executeUpdate("update eaf_acm_online l set l.eaf_contexlid='6BEB598696F4116772AF9E03EFC7E962' ",new Object[][]{});
-            masterDbUtil.executeUpdate("alter table EAF_ACM_ONLINE modify eaf_contexlid default '6BEB598696F4116772AF9E03EFC7E962'",new Object[][]{});
-            masterDbUtil.executeUpdate("         update EAF_ACM_ONLINE set eaf_session = null where eaf_session='EAFSYS_9CAA64E618B743A4AAC4D7198D70BF59' and  eaf_loginname ='sysadmin'  " ,new Object[][]{});
-        }
-        if (tbName.equals("EAF_DMM_METAATTR_M")){
-            String[] arrColumns = addColumns.split(",");
-            for (int i = 0; i <arrColumns.length ; i++) {
-                masterDbUtil.executeUpdate(" alter TABLE  "+tbName+" drop column  "+arrColumns[i],new Object[][]{});
-            }
-        }
-        //测试
-        if (tbName.equals("EAF_ACM_USER")){
-            masterDbUtil.executeUpdate("  update eaf_acm_user set eaf_phone = 15071228254  " ,new Object[][]{});
-            masterDbUtil.executeUpdate("  update eaf_acm_user  set BIM_CATEGORY ='1 正式人员' where eaf_loginname ='sysadmin'  " ,new Object[][]{});
-            masterDbUtil.executeUpdate("  delete from EAF_ACM_USER where  EAF_ID = '00000000000000000000000000000000'  and eaf_name is null  " ,new Object[][]{});
-
-        }*/
         //将从库
         return insertCount;
     }
@@ -403,8 +394,9 @@ public class TbService {
                 e.printStackTrace();
                 logger.error("插入记录表出错，原因"+e.getMessage());
             }
+            logger.info("----------------------插入记录表 success-------------------------");
         }
-      logger.info("----------------------插入记录表 success-------------------------");
+
 
 
     }
