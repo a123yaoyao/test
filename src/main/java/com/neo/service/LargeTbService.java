@@ -105,11 +105,13 @@ public class LargeTbService{
         returnMap.put("INSERT_COUNT","0");
         returnMap.put("MESSAGE","执行成功");
         int insertCount =0 ;
+        threads=1;//测试
         if (threads==1){
             String sql ="select * from "+tbName ;
             List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(sql,new Object[][]{});
             List<Map<String,Object>> masterTbStructor = selectTableStructureByDbAndTb(tbName,  dbName);
-            returnMap =  new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStructor);
+            returnMap = //new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStructor);
+                    new JDBCUtil(masterDataSource).batchInsertJsonArry1(tbName,list,masterTbStructor);
         }else{
             int groupSize =getGroupSize(dataCount);
             final BlockingQueue<Future<Map<String,String>>> queue = new LinkedBlockingQueue<>();

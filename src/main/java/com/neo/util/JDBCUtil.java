@@ -30,6 +30,8 @@ public class JDBCUtil {
 
     private PreparedStatement pst = null;
 
+    private Statement st = null;
+
     private ResultSet rst = null;
     /**
      * 构造方法
@@ -122,7 +124,7 @@ public class JDBCUtil {
                     }else {
                         map.put(rsmd.getColumnLabel(i), rs.getObject(i));
                     }
-
+                    map.put(rsmd.getColumnLabel(i), rs.getObject(i));
                 }
                 list.add(map);//每一个map代表一条记录，把所有记录存在list中
             }
@@ -322,7 +324,7 @@ public class JDBCUtil {
 
     }
 
-    public synchronized Map<String,String>   batchInsertJsonArry(String tbName, List<Map<String, Object>> newData, List<Map<String, Object>> tbstruct) throws Exception{
+    public  Map<String,String>   batchInsertJsonArry(String tbName, List<Map<String, Object>> newData, List<Map<String, Object>> tbstruct) throws Exception{
         long start = System.currentTimeMillis();
         Map<String,String> returnMap =new HashMap<>();
         String  sql= null;
@@ -358,6 +360,126 @@ public class JDBCUtil {
         }
         return returnMap;
 
+    }
+
+
+    public  Map<String,String>   batchInsertJsonArry1(String tbName, List<Map<String, Object>> newData, List<Map<String, Object>> tbstruct) throws Exception{
+        long start = System.currentTimeMillis();
+        Map<String,String> returnMap =new HashMap<>();
+        String  sql= null;
+        int result= 0;
+
+        try {
+            //sql =  getInsertSql( tbName,  newData);
+            conn.setAutoCommit(false);
+           // pst = conn.prepareStatement(sql);
+            result =     insertBatch2(tbName , newData,tbstruct);
+                  //  insertBatch1(tbName , newData, pst,tbstruct);
+            // insertBatch(tbName , newData, pst,tbstruct);
+            long end = System.currentTimeMillis();
+            logger.info(tbName+"表批量插入了:"+newData.size()+"条数据 需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
+            int len= newData.size() ;
+            returnMap.put("INSERT_COUNT",len+"");
+            returnMap.put("MESSAGE","执行成功");
+            newData =null;
+            return returnMap;
+        } catch (Exception e) {
+            logger.error(sql.toString()+e.getMessage());
+
+            if (e.getMessage().contains("ORA-00001")){
+                System.out.println("开始单条插入......................................................................................");
+                // logger.info("开始单条插入................");
+                return odinaryInsert(tbName,newData,tbstruct);
+            }else{
+                returnMap.put("INSERT_COUNT","0");
+                returnMap.put("MESSAGE",e.getMessage());
+            }
+
+        }finally {
+            closeAll();
+        }
+        return returnMap;
+
+    }
+
+    private int insertBatch2(String tbName,List<Map<String, Object>> dat, List<Map<String,Object>> tbstruct) {
+        int[] ik = null;
+        try {
+            conn.setAutoCommit(false);
+            Map<String, Object> m = (Map<String, Object>) dat.get(0);
+
+            String value = null;
+            Map<String, Object> ma = null;
+            String cloumnName = null;
+            String dataType = null;
+            java.sql.Date dateValue = null;
+            java.sql.Timestamp timestampValue = null;
+            boolean flag;
+            Map<String, String> structureMap = new LinkedHashMap<>();
+            for (Map<String, Object> structure : tbstruct) { //表 字段名和字段类型映射
+                cloumnName = structure.get("COLUMN_NAME") + "";
+                dataType = structure.get("DATA_TYPE") + "";
+                structureMap.put(cloumnName, dataType);
+            }
+
+
+            Map<String, Object> insertMap = (Map<String, Object>) dat.get(0);
+            String finallySql ="";
+            for (int i = 0; i < dat.size(); i++) {
+                String sql =" insert into "+tbName + "(";
+                String tempSql=" values ( ";
+
+                ma = (Map<String, Object>) dat.get(i);
+                int j = 0;
+
+                for (String k : ma.keySet()) {
+                    dataType   =   structureMap.get(k);
+                    sql += k;
+                    if (ma.get(k) == null) tempSql+= "null";
+                    else{
+                        if ("DATE".equals(dataType)){
+                            tempSql+= "to_char('2017-10-01','yyyy-mm-dd')";
+                        }
+                        if ("Clob".equals(dataType)){
+                            tempSql+= "to_clob('"+ma.get(k)+"')";
+                        }
+                        if ("Blob".equals(dataType)){
+                            tempSql+= "to_blob('"+ma.get(k)+"')";
+                        }
+                        tempSql+= "'"+ma.get(k)+"'";
+                    }
+                    if(j !=ma.size()-1){
+                        sql += ",";
+                        tempSql += ",";
+                    }
+
+                    j++;
+                }
+                tempSql += ")";
+                sql +=")";
+                finallySql = sql + tempSql;
+                pst.addBatch(finallySql);
+                if (i > 0 && i % 1000 == 0) {
+                    ik = pst.executeBatch();
+                    conn.commit();
+                    //清除批处理命令
+                    pst.clearBatch();
+                    //如果不想出错后，完全没保留数据，则可以每执行一次提交一次，但得保证数据不会重复
+                }
+            }
+            ik = pst.executeBatch();
+            conn.commit();
+            pst.clearBatch();
+            return ik.length;
+        }catch (Exception e){
+            e.printStackTrace();
+            logger.error(e.getMessage());
+        }
+        /*finally {
+            // closeAll();
+            return ik;
+        }*/
+        return 0;
     }
 
 
@@ -555,7 +677,17 @@ public class JDBCUtil {
                         if (ma.get(k) == null){
                             pst.setObject(mapperFlag, null);
                         }else {
-                            pst.setObject(mapperFlag, "to_clob("+ma.get(k)+")");
+                            pst.setString(mapperFlag, "to_clob('"+ma.get(k)+"')");
+                           /* Clob clob = (Clob) ma.get(k);
+                            pst.setClob(mapperFlag,clob);*/
+                            //pst.setObject(mapperFlag,StringUtils.ClobToString((Clob) ma.get(k)));
+                         /*   oracle.sql.CLOB clob=oracle.sql.CLOB.createTemporary(conn, false, oracle.sql.CLOB.DURATION_SESSION);
+                            clob.open(oracle.sql.CLOB.MODE_READWRITE);
+                            clob.putString(mapperFlag,  ma.get(k)+"");
+                            pst.setClob(mapperFlag, clob);*/
+                            //map.put(rsmd.getColumnLabel(i),StringUtils.ClobToString(v));
+                            //pst.setObject(mapperFlag, "to_clob("+ma.get(k)+")");
+                            //pst.setObject(mapperFlag, "to_clob("+ma.get(k)+")");
                             //pst.setBinaryStream(mapperFlag,new ByteArrayInputStream((ma.get(k)+"").getBytes()));
                             //pst.setObject(mapperFlag,StringUtils.toOctal(ma.get(k)+""));
                            // Reader clobReader = new StringReader(ma.get(k)+"");
@@ -617,14 +749,18 @@ public class JDBCUtil {
      * @throws SQLException
      */
     private String getValueByType(Map<String, Object> map, String key, String data_type) throws IOException, SQLException {
-        if ("CLOB".equals(data_type)){
-            Clob columnClob = (Clob) map.get(key);
+       /* if ("CLOB".equals(data_type)){
+           Clob columnClob = (Clob) map.get(key);
+            oracle.sql.CLOB columnClob=oracle.sql.CLOB.createTemporary(conn, false, oracle.sql.CLOB.DURATION_SESSION);
+            columnClob.open(oracle.sql.CLOB.MODE_READWRITE);
             return StringUtils.ClobToString(columnClob);
         }
         if ("BLOB".equals(data_type)){
-            BLOB columnClob = (BLOB) map.get(key);
-            return StringUtils.BlobToString(columnClob);
-        }
+          *//*  oracle.sql.BLOB columnBlob=oracle.sql.BLOB.createTemporary(conn, false, oracle.sql.CLOB.DURATION_SESSION);
+            columnBlob.open(oracle.sql.CLOB.MODE_READWRITE);*//*
+            BLOB columnBlob = (BLOB) map.get(key);
+            return StringUtils.BlobToString(columnBlob);
+        }*/
         return null;
     }
 

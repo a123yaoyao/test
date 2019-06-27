@@ -16,10 +16,10 @@ import java.util.concurrent.CountDownLatch;
 
 public class InsertTest {
 
-    private String url="jdbc:oracle:thin:@39.105.109.148:1521:orcl";
-    private String user="bimall";
-    private String password="bimall";
-    public Connection getMasterConnect(){
+    private static  String url="jdbc:oracle:thin:@39.105.109.148:1521:orcl";
+    private static String user="bimall";
+    private static String password="bimall";
+    public static Connection getMasterConnect(){
         Connection con = null;
         try {
             Class.forName("oracle.jdbc.driver.OracleDriver");
@@ -43,6 +43,16 @@ public class InsertTest {
         }
         return con;
     }
+
+    public static void main(String[] args) throws SQLException {
+        Connection conn = getMasterConnect();
+
+        String sql = "  insert into SYS_EXPORT_SCHEMA_01(xml_clob) values ( to_clob('1')) ";
+        Statement statement =conn.createStatement();
+        int num = statement.executeUpdate(sql);
+        System.out.println(num);
+
+}
 
     private String getInsertSql( List<Map<String, Object>> newData) {
         StringBuilder sql = new StringBuilder();
