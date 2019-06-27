@@ -202,9 +202,13 @@ public class TbService {
      * @throws IOException
      * @throws SQLException
      */
-    public Integer mergeData(String dbName ,String tbName,String masterDataSource, List<Map<String,Object>> list,int groupSize,
+    public Map<String,String> mergeData(String dbName ,String tbName,String masterDataSource, List<Map<String,Object>> list,int groupSize,
     Connection masterConn,Connection slaverConn
     ) throws Exception {
+        Map<String,String> returnMap =new HashMap<>();
+        returnMap.put("INSERT_COUNT","0");
+        returnMap.put("MESSAGE","执行成功");
+
         DbUtil masterDbUtil =new DbUtil(masterConn);
         DbUtil salverDbUtil =new DbUtil(slaverConn);
         int insertCount =0;
@@ -286,7 +290,9 @@ public class TbService {
         long queryStart =System.currentTimeMillis();
         //查询某个库下的某个表的所有数据
         List<Map<String, Object>> data =  getDataByMulitThreads( dbName , tbName, masterDataSource,   groupSize, masterConn, slaverConn);
-        if (data.size()==0) return 0;
+        if (data.size()==0){
+          return returnMap;
+        }
         if (data.size()<groupSize) threads =1; //如果同步的数据太少 小于切割的数据条数 则只用一个线程
         Map<String,Object> m =(Map<String,Object>)data.get(0);
         long queryEnd =System.currentTimeMillis();
@@ -301,25 +307,28 @@ public class TbService {
         if (threads == 1 ){ //不开启多线程
             for (List<Map<String, Object>> dat : newData) {
                 insertRecord(masterDbUtil,tbName,dat,dbName);//插入记录
-                insertCount += masterDbUtil.batchInsertJsonArry(tbName,dat,tb);
+                returnMap = masterDbUtil.batchInsertJsonArry(tbName,dat,tb);
             }
         }else{
-            final BlockingQueue<Future<Integer>> queue = new LinkedBlockingQueue<>();
+            final BlockingQueue<Future<Map<String ,String>>> queue = new LinkedBlockingQueue<>();
             final CountDownLatch  endLock = new CountDownLatch(threads); //结束门
             //List<Future<Integer>> results = new ArrayList<Future<Integer>>();
             final ExecutorService exec = Executors.newFixedThreadPool(threads);
             for (List<Map<String, Object>> dat : newData ) {
-                Future<Integer> future=   exec.submit(new Callable<Integer>(){
+                Future<Map<String ,String>> future=   exec.submit(new Callable<Map<String ,String>>(){
                     @Override
-                    public Integer call() {
+                    public Map<String ,String> call() {
                         try {
 
                             insertRecord(masterDbUtil,tbName,dat,dbName);//插入记录
-                            int len =    masterDbUtil. batchInsertJsonArry(tbName,dat,tb);
-                            return  len ;
+                            Map<String ,String>  returnMap =  masterDbUtil. batchInsertJsonArry(tbName,dat,tb);
+                            return  returnMap ;
                         }catch(Exception e) {
                             logger.error("数据同步 exception!",e);
-                            return 0;
+                            Map<String ,String> returnMap =new HashMap<>();
+                            returnMap.put("INSERT_COUNT","0");
+                            returnMap.put("MESSAGE",e.getMessage());
+                            return returnMap;
                         }finally {
                             endLock.countDown(); //线程执行完毕，结束门计数器减1
                         }
@@ -329,15 +338,20 @@ public class TbService {
                 queue.add(future);
             }
             endLock.await(); //主线程阻塞，直到所有线程执行完成
-            for(Future<Integer> future : queue)  insertCount +=future.get();
+            for(Future<Map<String ,String>> future : queue){
+                returnMap  =   future.get();
+                insertCount += Integer.valueOf(returnMap.get("INSERT_COUNT"));
+            }
+            returnMap.put("INSERT_COUNT",insertCount+"");
             exec.shutdown(); //关闭线程池
         }
 
+
         // 对表数据进行特殊业务处理
-       // TbDealDTO tbDealDTO =new TbDealDTO( tbName,masterDbUtil, addColumns);
-       // tbDealDTO.dealWithTbProblem();
+        TbDealDTO tbDealDTO =new TbDealDTO( tbName,masterDataSource, addColumns);
+        tbDealDTO.dealWithTbProblem();
         //将从库
-        return insertCount;
+        return returnMap;
     }
 
 
@@ -423,6 +437,7 @@ public class TbService {
         //获得列表中的唯一键
         List<Map<String, Object>> uniqueList = getUniqueConstriant(paramsMap, masterDbUtil,salverDbUtil);
         //批量删除重复数据
+        //return masterDbUtil.delete(data, uniqueList, tbName);
         return masterDbUtil.batchDelete(data, uniqueList, tbName);
 
     }
@@ -459,12 +474,9 @@ public class TbService {
      */
     private List<Map<String, Object>> getUniqueConstriant(Map<String, Object> paramsMap, DbUtil masterDbUtil,DbUtil salverDbUtil) throws Exception {
         List<Map<String, Object>> list = null;
-
         JSONArray constraint = JSONArray.parseArray(uniqueConstraint);
-
         JSONObject jsonObject =null;
         String tbName = paramsMap.get("tbName")+"";
-
         for (int i = 0; i <constraint.size() ; i++) {
             jsonObject = (JSONObject) constraint.get(i);
             if (tbName.equals(jsonObject.get("table")+"")){
@@ -482,7 +494,6 @@ public class TbService {
             list =new ArrayList<>();
             Map<String,Object> map =new HashMap<>();
           if (i==1) {
-
               List<String> columns = new ArrayList<>();
               columns.add("EAF_ID");
               map.put("COLUMN_NAME",columns);

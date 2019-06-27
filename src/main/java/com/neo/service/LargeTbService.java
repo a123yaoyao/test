@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -73,18 +74,21 @@ public class LargeTbService{
      * @return
      * @throws Exception
      */
-    public Integer mergeData(int dataNums,String tbName,String dbName) throws Exception {
+    public  Map<String ,String> mergeData(int dataNums,String tbName,String dbName) throws Exception {
         long startTime =System.currentTimeMillis();//合并数据开始时间
+        Map<String,String> returnMap =new HashMap<>();
+        returnMap.put("INSERT_COUNT","0");
+        returnMap.put("MESSAGE","执行成功");
         //获得线程数量
         int threads = getThreads(dataNums);
         //对比主库和从库创建表或者增加修改列
         String addColumns = createTable(tbName,dbName);
-        if (dataNums ==0 ) return 0;//如果数据查询为0条直接返回
-        int insertCount = insertTbData(threads,dbName,tbName,dataNums);
+        if (dataNums ==0 ) return returnMap;//如果数据查询为0条直接返回
+        returnMap = insertTbData(threads,dbName,tbName,dataNums);
         // 对表数据进行特殊业务处理
         TbDealDTO tbDealDTO =new TbDealDTO( tbName,masterDataSource, addColumns);
         tbDealDTO.dealWithTbProblem();
-        return  insertCount;
+        return  returnMap;
     }
 
     /**
@@ -96,29 +100,35 @@ public class LargeTbService{
      * @return
      * @throws Exception
      */
-    private int insertTbData(int threads,String dbName,String tbName,int dataCount) throws Exception {
+    private Map<String,String>  insertTbData(int threads,String dbName,String tbName,int dataCount) throws Exception {
+        Map<String,String> returnMap =new HashMap<>();
+        returnMap.put("INSERT_COUNT","0");
+        returnMap.put("MESSAGE","执行成功");
         int insertCount =0 ;
         if (threads==1){
             String sql ="select * from "+tbName ;
             List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(sql,new Object[][]{});
             List<Map<String,Object>> masterTbStructor = selectTableStructureByDbAndTb(tbName,  dbName);
-            insertCount =  new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStructor);
+            returnMap =  new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStructor);
         }else{
             int groupSize =getGroupSize(dataCount);
-            final BlockingQueue<Future<Integer>> queue = new LinkedBlockingQueue<>();
+            final BlockingQueue<Future<Map<String,String>>> queue = new LinkedBlockingQueue<>();
             final CountDownLatch  endLock = new CountDownLatch(threads); //结束门
             final ExecutorService exec = Executors.newFixedThreadPool(threads);
             for (int i = 0; i <threads ; i++) {
                 int startIndex = i * groupSize;
                 int maxIndex = startIndex + groupSize;
-                Future<Integer> future = exec.submit(new TaskTbMerge(i, groupSize,masterDataSource,dbName,tbName,endLock,startIndex,maxIndex,uniqueConstraint));
+                Future<Map<String,String>> future = exec.submit(new TaskTbMerge(i, groupSize,masterDataSource,dbName,tbName,endLock,startIndex,maxIndex,uniqueConstraint));
                 queue.add(future);
             }
             endLock.await(); //主线程阻塞，直到所有线程执行完成
-            for(Future<Integer> future : queue)  insertCount +=future.get();
+            for(Future<Map<String,String>> future : queue){
+                insertCount +=  Integer.valueOf(future.get().get("INSERT_COUNT"));
+            } ;
             exec.shutdown(); //关闭线程池
+            returnMap.put("INSERT_COUNT",insertCount+"");
         }
-        return insertCount;
+        return returnMap;
     }
 
     /**

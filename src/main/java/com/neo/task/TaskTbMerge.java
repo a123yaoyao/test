@@ -19,7 +19,7 @@ import java.util.concurrent.CountDownLatch;
  * @Date: 2019/6/26/026 17:21
  * @Description:
  */
-public class TaskTbMerge  implements Callable<Integer> {
+public class TaskTbMerge  implements Callable<Map<String,String>> {
     /**
      * 日志对象
      */
@@ -55,8 +55,9 @@ public class TaskTbMerge  implements Callable<Integer> {
      * @throws Exception if unable to compute a result
      */
     @Override
-    public Integer call() throws Exception {
+    public Map<String,String> call() throws Exception {
         int len = 0;
+        Map<String,String> returnMap = null;
         try{
             JDBCUtil salver  = new JDBCUtil(dbName);
             //查询从库的数据
@@ -67,9 +68,9 @@ public class TaskTbMerge  implements Callable<Integer> {
             //获取当前主库表结构
             List<Map<String, Object>> masterTbStruct = selectTableStructureByDbAndTb();
             //插入数据
-            len = new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStruct);
+            returnMap = new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStruct);
             long end = System.currentTimeMillis();
-            return len;
+            return returnMap;
         }catch (Exception e){
             e.printStackTrace();
             logger.error(e.getMessage());
@@ -77,7 +78,7 @@ public class TaskTbMerge  implements Callable<Integer> {
             endLock.countDown();//计时器减1
 
         }
-      return 0;
+      return returnMap;
 
     }
 
@@ -118,7 +119,7 @@ public class TaskTbMerge  implements Callable<Integer> {
         //获得列表中的唯一键
         List<Map<String, Object>> uniqueList = getUniqueConstriant();
         //批量删除重复数据
-        return new JDBCUtil(masterDataSource).batchDelete(data, uniqueList, tbName);
+        return new JDBCUtil(masterDataSource).delete(data, uniqueList, tbName);
     }
 
     /**

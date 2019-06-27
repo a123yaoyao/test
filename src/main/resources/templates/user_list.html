@@ -197,9 +197,9 @@ textField:'text',onChange:uie_dgd_search" id="db">
                 }
                 var list = data.list;
 
-                var html ='<table class="am-table"><thead> <tr><th>序号</th><th>表名</th><th>信息</th> </tr></thead>';
+                var html ='<table class="am-table"><thead> <tr><th>序号</th><th>表名</th><th>同步条数</th> <th>信息</th></tr></thead>';
                 for(var i=0;i<list.length;i++){
-                    html +='<tr><td>'+(i+1)+'</td><td>'+list[i].TABLE_NAME+'</td><td>成功同步'+list[i].INSERT_COUNT+'条数据</td></tr>';
+                    html +='<tr><td>'+(i+1)+'</td><td>'+list[i].TABLE_NAME+'</td><td>插入'+list[i].INSERT_COUNT+'条数据</td><td>'+list[i].MESSAGE+'</td></tr>';
                 }
                 html +="</table>"
                 //alert(html);
@@ -211,7 +211,8 @@ textField:'text',onChange:uie_dgd_search" id="db">
                 });
             },
             error:function(data){
-
+                alert(data);
+                disLoad();
             }
         });
 

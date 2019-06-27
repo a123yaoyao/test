@@ -71,7 +71,18 @@ public class DateUtil {
 
     }
 
-
+    public static  String getRocord(long start ,long end ) {
+        String cost ="";
+        long time =end - start ;
+        if (time >=0l && time<1000l){
+            cost += time+"毫秒";
+        }else if(time>=1000 && time<60000){
+            cost += time/1000 +"秒";
+        }else {
+            cost += time/60000 +"分钟";
+        }
+       return cost ;
+    }
 
 
 }

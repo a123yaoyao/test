@@ -103,19 +103,21 @@ public class TbController  {
     public String mergeData(String dbName, String tbCollection) throws Exception {
         Connection masterConn = null ;//主库连接
         Connection slaverConn = null;//从库连接
-        int groupSiz = 0; //每张表数据插入多次 一次插入的数据条数
+       // int groupSiz = 0; //每张表数据插入多次 一次插入的数据条数
         List<Map<String, Object>> list = null;
         List<Map<String, String>> result = new ArrayList<>();
         Map<String,Object> resu =new HashMap<>();
         String tbName = null;
 
         Map<String, String> resultMap = null;
+        Map<String ,String> insertMessageMap = null;
         try{
             masterConn = DataSourceHelper.GetConnection(masterDataSource);
             slaverConn = DataSourceHelper.GetConnection(dbName);
             Long start =   System.currentTimeMillis();
-            groupSiz= Integer.valueOf(   groupSize  );
+             //groupSiz= Integer.valueOf(   groupSize  );
             list = getParamList(tbCollection, "tbs");
+            int insertCountRecord =0 ;
             int k=0;
             int count=0;
             String insertCount ="";
@@ -123,21 +125,26 @@ public class TbController  {
             for (Map<String, Object> map : list) {
                 tbName = map.get("TABLE_NAME") + "";
                 count = salverDbUtil.getCount("select count(*) from "+tbName,new Object[][]{});
+                insertCountRecord += count;//记录 每张表的数据条数的和
                 resultMap = new HashMap();
                 resultMap.put("TABLE_NAME", tbName);
+                insertMessageMap =tbService.mergeData(dbName, tbName, masterDataSource, list, Integer.valueOf(groupSize),masterConn,slaverConn);
+
                 if (count<3000){
-                    insertCount =tbService.mergeData(dbName, tbName, masterDataSource, list, Integer.valueOf(groupSiz),masterConn,slaverConn)+"";
+                    insertMessageMap =tbService.mergeData(dbName, tbName, masterDataSource, list, Integer.valueOf(groupSize),masterConn,slaverConn);
                 }else{
-                    insertCount = largeTbService. mergeData( count, tbName, dbName)+"";
+                    insertMessageMap = largeTbService. mergeData( count, tbName, dbName);
                 }
-                resultMap.put("INSERT_COUNT",insertCount );
+                resultMap.put("INSERT_COUNT",insertMessageMap.get("INSERT_COUNT") );
+                resultMap.put("MESSAGE",insertMessageMap.get("MESSAGE") );
                 result.add(resultMap);
                 k++;
-                if (k %50 == 0){//循环50次就关一次连接再重新获取、、
+                if (k %50 == 0 || insertCountRecord >18000 ){//循环50次就关一次连接再重新获取、、
                     closeConn(masterConn,slaverConn);
                     masterConn = DataSourceHelper.GetConnection(masterDataSource);
                     slaverConn = DataSourceHelper.GetConnection(dbName);
                     salverDbUtil =new DbUtil(slaverConn);
+                    insertCountRecord =0 ;//重置表条数记录
                 }
             }
             resu.put("list",result);
