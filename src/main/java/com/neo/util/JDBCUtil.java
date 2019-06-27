@@ -2,9 +2,13 @@ package com.neo.util;
 
 
 import oracle.sql.BLOB;
+import oracle.sql.CLOB;
 import org.apache.log4j.Logger;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
 import java.sql.*;
 import java.sql.Date;
 import java.util.*;
@@ -58,7 +62,6 @@ public class JDBCUtil {
     public  int  getCount(String sql, Object[] params) throws SQLException {
         // 执行SQL获得结果集
         ResultSet rs = executeQueryRS(sql, params);
-
         int rowCount = 0;
         try {
             if(rs.next())
@@ -99,7 +102,27 @@ public class JDBCUtil {
                 Map<String, Object> map = new LinkedHashMap<String, Object>();
                 for (int i = 1; i <= columnCount; i++) {
                     if ("RN".equals(rsmd.getColumnLabel(i))) continue;
-                    map.put(rsmd.getColumnLabel(i), rs.getObject(i));
+                    if (rsmd.getColumnTypeName(i).equals("BLOB")){
+                        BLOB v = (BLOB) rs.getBlob(i);
+                        if (v==null){
+                            map.put(rsmd.getColumnLabel(i),null);
+                        }else{
+                            map.put(rsmd.getColumnLabel(i),StringUtils.BlobToString(v));
+                        }
+                        map.put(rsmd.getColumnLabel(i),StringUtils.BlobToString(v));
+                    }
+                    if (rsmd.getColumnTypeName(i).equals("CLOB")){
+                        CLOB v = (CLOB) rs.getClob(i);
+                        if (v==null){
+                            map.put(rsmd.getColumnLabel(i),null);
+                        }else {
+                            map.put(rsmd.getColumnLabel(i),StringUtils.ClobToString(v));
+                        }
+
+                    }else {
+                        map.put(rsmd.getColumnLabel(i), rs.getObject(i));
+                    }
+
                 }
                 list.add(map);//每一个map代表一条记录，把所有记录存在list中
             }
@@ -136,9 +159,7 @@ public class JDBCUtil {
         } catch (SQLException e) {
             logger.error(e.getMessage());
 
-        } /*finally{
-            closeAll();
-        }*/
+        }
         return rst;
     }
 
@@ -204,7 +225,9 @@ public class JDBCUtil {
         }
     }
 
-
+    //通过是否批量标记来决定是否使用批量插入
+   // @Deprecated
+/*
     public int insert(String tbName, List<Map<String, Object>> newData,List<Map<String, Object>> tbstruct,boolean isUseBatch) throws Exception {
         int len =0;
         try{
@@ -218,9 +241,12 @@ public class JDBCUtil {
 
 
     }
+*/
 
-    private int odinaryInsert(String tbName, List<Map<String,Object>> dat, List<Map<String,Object>> tbstruct) {
+    private Map<String,String> odinaryInsert(String tbName, List<Map<String,Object>> dat, List<Map<String,Object>> tbstruct) {
         long start = System.currentTimeMillis();
+        boolean failureFlag =false;
+        Map<String,String> retrunMap =new HashMap<>();
         String  sql= sql =  getInsertSql( tbName,  dat);;
         int[] result= null;
         PreparedStatement pst = null;
@@ -267,6 +293,8 @@ public class JDBCUtil {
                     conn.commit();
                     logger.info("插入第"+(i+1)+"条数据成功");
                 }catch (Exception e){
+                    failureFlag =true ;
+                    retrunMap.put("MESSAGE","EAF_ID为 "+ma.get("EAF_ID")+" 原因："+e.getMessage());
                     logger.info(""+tbName+"表插入第"+(i+1)+"条数据失败原因为 ："+e.getMessage()+" EAF_ID为"+ma.get("EAF_ID"));
                     if (!e.getMessage().contains("ORA-00001: 违反唯一约束条件")){
                         logger.error(sql.toString()+e.getMessage());
@@ -279,7 +307,9 @@ public class JDBCUtil {
 
             long end = System.currentTimeMillis();
             logger.info("插入了:"+rows+"条数据需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
-            return rows;
+            retrunMap.put("INSERT_COUNT",rows+"");
+            if(!failureFlag) retrunMap.put("MESSAGE","执行成功");
+            return retrunMap;
         } catch (Exception e) {
             if (!e.getMessage().contains("ORA-00001")){
                 logger.error(sql.toString()+e.getMessage());
@@ -288,25 +318,29 @@ public class JDBCUtil {
         }finally {
             closeAll();
         }
-        return 0;
+        return retrunMap;
 
     }
 
-    public int batchInsertJsonArry(String tbName, List<Map<String, Object>> newData,List<Map<String, Object>> tbstruct) throws Exception{
+    public synchronized Map<String,String>   batchInsertJsonArry(String tbName, List<Map<String, Object>> newData, List<Map<String, Object>> tbstruct) throws Exception{
         long start = System.currentTimeMillis();
+        Map<String,String> returnMap =new HashMap<>();
         String  sql= null;
-        int[] result= null;
+        int result= 0;
         PreparedStatement pst = null;
         try {
             sql =  getInsertSql( tbName,  newData);
             conn.setAutoCommit(false);
             pst = conn.prepareStatement(sql);
-            result =  insertBatch(tbName , newData, pst,tbstruct);
+            result =    insertBatch1(tbName , newData, pst,tbstruct);
+                       // insertBatch(tbName , newData, pst,tbstruct);
             long end = System.currentTimeMillis();
             logger.info(tbName+"表批量插入了:"+newData.size()+"条数据 需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
             int len= newData.size() ;
+            returnMap.put("INSERT_COUNT",len+"");
+            returnMap.put("MESSAGE","执行成功");
             newData =null;
-            return len;
+            return returnMap;
         } catch (Exception e) {
             logger.error(sql.toString()+e.getMessage());
 
@@ -314,14 +348,18 @@ public class JDBCUtil {
                 System.out.println("开始单条插入......................................................................................");
                 // logger.info("开始单条插入................");
                 return odinaryInsert(tbName,newData,tbstruct);
+            }else{
+                returnMap.put("INSERT_COUNT","0");
+                returnMap.put("MESSAGE",e.getMessage());
             }
 
         }finally {
             closeAll();
         }
-        return 0;
+        return returnMap;
 
     }
+
 
     public int insertTbRecord(String tbName, List<Map<String, Object>> dat,Map<String,Integer> mapper) throws Exception{
         long start = System.currentTimeMillis();
@@ -366,7 +404,7 @@ public class JDBCUtil {
 
 
 
-    private String getInsertSql(String tbName, List<Map<String, Object>> newData) {
+    private  String getInsertSql(String tbName, List<Map<String, Object>> newData) {
         StringBuilder sql = new StringBuilder();
         Map<String,Object> m= newData.get(0);
         sql.append("insert into "+tbName+" (");
@@ -387,7 +425,7 @@ public class JDBCUtil {
         return sql.toString();
     }
 
-    private int[] insertBatch(String tbName, List<Map<String, Object>> dat,PreparedStatement pst,List<Map<String, Object>> tbstruct) throws SQLException, IOException {
+    private int insertBatch(String tbName, List<Map<String, Object>> dat,PreparedStatement pst,List<Map<String, Object>> tbstruct) throws SQLException, IOException {
         int[] ik = null;
         try {
            conn.setAutoCommit(false);
@@ -438,7 +476,7 @@ public class JDBCUtil {
                    }
                    if (flag) {//数据库date类型
                         pst.setTimestamp(mapperFlag, timestampValue);
-                      // pst.setTimestamp(j + 1, timestampValue);
+
                    } else pst.setString(mapperFlag, value);
                    j++;
                }
@@ -455,17 +493,118 @@ public class JDBCUtil {
            ik = pst.executeBatch();
            conn.commit();
            pst.clearBatch();
-           return ik;
+           return ik.length;
        }catch (Exception e){
            e.printStackTrace();
            logger.error(e.getMessage());
        }
         finally {
           // closeAll();
-           return ik;
+
         }
+        return 0;
     }
 
+
+    private int insertBatch1(String tbName, List<Map<String, Object>> dat,PreparedStatement pst,List<Map<String, Object>> tbstruct) throws SQLException, IOException {
+        int[] ik = null;
+        try {
+            conn.setAutoCommit(false);
+            Map<String, Object> m = (Map<String, Object>) dat.get(0);
+
+            String value = null;
+            Map<String, Object> ma = null;
+            String cloumnName = null;
+            String dataType = null;
+            java.sql.Date dateValue = null;
+            java.sql.Timestamp timestampValue = null;
+            boolean flag;
+            Map<String, String> structureMap = new LinkedHashMap<>();
+            for (Map<String, Object> structure : tbstruct) { //表 字段名和字段类型映射
+                cloumnName = structure.get("COLUMN_NAME") + "";
+                dataType = structure.get("DATA_TYPE") + "";
+                structureMap.put(cloumnName, dataType);
+            }
+
+            Map<String, Integer> nameIndexMapper = new LinkedHashMap<>();
+
+            Map<String, Object> insertMap = (Map<String, Object>) dat.get(0);
+
+            int mapperFlag =0;
+            for (String  col : insertMap.keySet()) { //表 字段名和字段类型映射
+                mapperFlag++;
+                nameIndexMapper.put(col,mapperFlag);
+            }
+
+            for (int i = 0; i < dat.size(); i++) {
+                ma = (Map<String, Object>) dat.get(i);
+                int j = 0;
+
+                for (String k : ma.keySet()) {
+                    dataType   =   structureMap.get(k);
+                    mapperFlag = nameIndexMapper.get(k);
+                    if ("DATE".equals(dataType)){
+                         if (ma.get(k) == null){
+                             pst.setTimestamp(mapperFlag, null);
+                         }else {
+                             timestampValue= DateUtil.strToTimeStamp( (ma.get(k)+"").substring(0, (ma.get(k)+"").indexOf(".")) );
+                             pst.setTimestamp(mapperFlag, timestampValue);
+                         }
+                    }
+                    if (("CLOB".equals(dataType))){
+                        if (ma.get(k) == null){
+                            pst.setObject(mapperFlag, null);
+                        }else {
+                            pst.setObject(mapperFlag, "to_clob("+ma.get(k)+")");
+                            //pst.setBinaryStream(mapperFlag,new ByteArrayInputStream((ma.get(k)+"").getBytes()));
+                            //pst.setObject(mapperFlag,StringUtils.toOctal(ma.get(k)+""));
+                           // Reader clobReader = new StringReader(ma.get(k)+"");
+                          //  pst.setCharacterStream(mapperFlag, clobReader);// 替换sql语句中的？将String转CLOB
+                           // pst.setClob(mapperFlag,new javax.sql.rowset.serial.SerialClob((ma.get(k)+"").toCharArray()));
+                            //pst.setClob(mapperFlag, v);
+                        }
+                    }
+                 /*
+                    if (("BLOB".equals(dataType))){
+                        if (ma.get(k) == null){
+                            pst.setObject(mapperFlag, null);
+                        }else {
+                            BLOB v = (BLOB)ma.get(k);
+                            pst.setBlob(mapperFlag, v);
+                        }
+                    }*/else{
+                        if (ma.get(k) == null){
+                            pst.setObject(mapperFlag, null);
+                        }else {
+                            String v = ma.get(k)+"";
+                            pst.setObject(mapperFlag, v);
+                        }
+                    }
+                }
+                pst.addBatch();
+
+                if (i > 0 && i % 1000 == 0) {
+                    ik = pst.executeBatch();
+                    conn.commit();
+                    //清除批处理命令
+                    pst.clearBatch();
+                    //如果不想出错后，完全没保留数据，则可以每执行一次提交一次，但得保证数据不会重复
+                }
+            }
+            ik = pst.executeBatch();
+            conn.commit();
+            pst.clearBatch();
+            return ik.length;
+        }catch (Exception e){
+            e.printStackTrace();
+            logger.error(e.getMessage());
+        }
+        /*finally {
+            // closeAll();
+            return ik;
+        }*/
+        return 0;
+    }
 
 
     /**
@@ -499,7 +638,6 @@ public class JDBCUtil {
      */
     public int batchDelete(List<Map<String, Object>> data, List<Map<String, Object>> uniqueList, String tbName) throws Exception {
         int len =0;
-
         try{
             String sql = " DELETE  FROM   " + tbName + " where 1=1 ";
 
@@ -626,5 +764,52 @@ public class JDBCUtil {
         }
         return returnSql;
 
+    }
+
+    //删除部分数据获得影响的行数 不使用addBatch
+    public int delete (List<Map<String, Object>> data, List<Map<String, Object>> uniqueList, String tbName)throws Exception {
+        try{
+            long startTime = System.currentTimeMillis();
+        int len = uniqueList.size(); //删除条件字段数量
+        if (len == 0) return 0;
+        //根据数据条数切割
+        List<List<Map<String, Object>>> newData = CollectionUtil.splitList(data, data.size() / uniqueList.size());
+        //获得sql
+        int affectLines = 0;
+        for (List<Map<String, Object>> list : newData) { //
+            String sql = " DELETE  FROM   " + tbName + " where 1=1 and ( ";
+            int i = 0;
+            String column = "";
+            for (Map<String, Object> param : list) {
+                if (len != 1) sql += "    ( ";
+                int j = 0;
+                for (Map<String, Object> uniqueMap : uniqueList) {
+
+                    column = (uniqueMap.get("COLUMN_NAME") + "").replace("[", "").replace("]", "");
+                    if ("null".equals((uniqueMap.get("COLUMN_NAME") + ""))) {//如果删除条件的字段数量为1 且这个字段值为空 则
+                        if (len != 1) sql += "" + column + " is null ";
+                    } else {
+                        sql += "" + column + " = '" + (param.get(column)) + "'";
+                    }
+                    j++;
+                }
+                if (len != 1) sql += " ) ";
+                if (i != list.size() - 1) {
+                    sql += " or ";
+                }
+                i++;
+            }
+            sql += " ) ";
+            pst = conn.prepareStatement(sql);
+            affectLines += pst.executeUpdate();
+        }
+        long endTime = System.currentTimeMillis();
+        logger.info("" + tbName + "表 " + affectLines + "行被删除, 耗时 " + DateUtil.getRocord(startTime, endTime));
+        return affectLines;
+    }catch (Exception e){e.printStackTrace();}
+        finally {
+            closeAll();
+        }
+        return 0;
     }
 }

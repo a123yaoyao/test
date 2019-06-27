@@ -131,5 +131,40 @@ public class StringUtils {
         return googleJson.fromJson(jsonArr, ArrayList.class);
     }
 
+    //转2进制
+    public static String toBinary(String str){
+        //把字符串转成字符数组
+        char[] strChar=str.toCharArray();
+        String result="";
+        for(int i=0;i<strChar.length;i++){
+            result +=Integer.toBinaryString(strChar[i])+ " ";
+        }
+        return result;
+    }
 
+    //转16进制
+    public static String toOctal(String str){
+        //把字符串转成字符数组
+        char[] strChar=str.toCharArray();
+        String result="";
+        for(int i=0;i<strChar.length;i++){
+            result +=Integer.toOctalString(strChar[i])+ "";
+        }
+        return result;
+    }
+
+    //转8进制
+    public static String toHex(String str){
+        //把字符串转成字符数组
+        char[] strChar=str.toCharArray();
+        String result="";
+        for(int i=0;i<strChar.length;i++){
+            result +=Integer.toHexString(strChar[i])+ "";
+        }
+        return result;
+    }
 }
+
+
+
+

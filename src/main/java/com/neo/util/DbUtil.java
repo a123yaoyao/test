@@ -213,6 +213,7 @@ public class DbUtil {
     }
 
 
+/*
     public int insert(String tbName, List<Map<String, Object>> newData,List<Map<String, Object>> tbstruct,boolean isUseBatch) throws Exception {
         int len =0;
         try{
@@ -226,9 +227,12 @@ public class DbUtil {
 
 
     }
+*/
 
-    private int odinaryInsert(String tbName, List<Map<String,Object>> dat, List<Map<String,Object>> tbstruct) {
+    private Map<String,String> odinaryInsert(String tbName, List<Map<String,Object>> dat, List<Map<String,Object>> tbstruct) {
         long start = System.currentTimeMillis();
+        boolean failureFlag =false;
+        Map<String,String> retrunMap =new HashMap<>();
         String  sql= sql =  getInsertSql( tbName,  dat);;
         int[] result= null;
         PreparedStatement pst = null;
@@ -277,6 +281,8 @@ public class DbUtil {
                     conn.commit();
                     logger.info("插入第"+(i+1)+"条数据成功");
                 }catch (Exception e){
+                    failureFlag =true ;
+                    retrunMap.put("MESSAGE","EAF_ID为 "+ma.get("EAF_ID")+" 原因："+e.getMessage());
                     logger.info(""+tbName+"表插入第"+(i+1)+"条数据失败原因为 ："+e.getMessage()+" EAF_ID为"+ma.get("EAF_ID"));
                     if (!e.getMessage().contains("ORA-00001: 违反唯一约束条件")){
                         logger.error(sql.toString()+e.getMessage());
@@ -289,7 +295,9 @@ public class DbUtil {
 
             long end = System.currentTimeMillis();
             logger.info("插入了:"+rows+"条数据需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
-            return rows;
+            retrunMap.put("INSERT_COUNT",rows+"");
+            if(!failureFlag) retrunMap.put("MESSAGE","执行成功");
+            return retrunMap;
         } catch (Exception e) {
             if (!e.getMessage().contains("ORA-00001")){
                 logger.error(sql.toString()+e.getMessage());
@@ -301,11 +309,13 @@ public class DbUtil {
         }/*finally {
             closeAll();
         }*/
-        return 0;
+
+        return retrunMap;
 
     }
 
-    public int batchInsertJsonArry(String tbName, List<Map<String, Object>> newData,List<Map<String, Object>> tbstruct) throws Exception{
+    public Map<String,String> batchInsertJsonArry(String tbName, List<Map<String, Object>> newData,List<Map<String, Object>> tbstruct) throws Exception{
+        Map<String,String> returnMap =new HashMap<>();
         long start = System.currentTimeMillis();
         String  sql= null;
         int[] result= null;
@@ -318,22 +328,21 @@ public class DbUtil {
             long end = System.currentTimeMillis();
             logger.info("批量插入了:"+newData.size()+"条数据 需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
             int len= newData.size() ;
+            returnMap.put("INSERT_COUNT",len+"");
+            returnMap.put("MESSAGE","执行成功");
             newData =null;
-            return len;
+            return returnMap;
         } catch (Exception e) {
            logger.error(sql.toString()+e.getMessage());
-
            if (e.getMessage().contains("ORA-00001")){
                System.out.println("开始单条插入......................................................................................");
-              // logger.info("开始单条插入................");
                return odinaryInsert(tbName,newData,tbstruct);
+           }else{
+               returnMap.put("INSERT_COUNT","0");
+               returnMap.put("MESSAGE",e.getMessage());
            }
-
-        }/*finally {
-            closeAll();
-        }*/
-        return 0;
-
+        }
+        return returnMap;
     }
 
     public int insertTbRecord(String tbName, List<Map<String, Object>> dat,Map<String,Integer> mapper) throws Exception{
@@ -457,9 +466,6 @@ public class DbUtil {
                 //清除批处理命令
                   pst.clearBatch();
                 //如果不想出错后，完全没保留数据，则可以每执行一次提交一次，但得保证数据不会重复
-
-
-
             }
 
 
@@ -565,11 +571,50 @@ public class DbUtil {
 
             logger.error("删除失败"+e.getMessage());
         }finally {
-           /* pst.close();*/
            logger.info("删除"+tbName +"表 "+len+"条数据成功！");
             return len;
         }
     }
+
+    //删除部分数据获得影响的行数 不使用addBatch
+    public int delete (List<Map<String, Object>> data, List<Map<String, Object>> uniqueList, String tbName)throws Exception {
+        long startTime =System.currentTimeMillis();
+        int len =uniqueList.size(); //删除条件字段数量
+        if (len ==0) return 0;
+        //根据数据条数切割
+        List<List<Map<String, Object>>> newData = CollectionUtil.splitList(data, data.size()/uniqueList.size());
+        //获得sql
+        int affectLines =0 ;
+        for (List<Map<String, Object>> list: newData) { //
+            String sql = " DELETE  FROM   " + tbName + " where 1=1 and ( ";
+            int i=0;
+            String column ="";
+            for (Map<String, Object> param: list) {
+                if (len !=1)  sql +="    ( ";
+                int j =0;
+                for (Map<String,Object> uniqueMap : uniqueList) {
+
+                    column = (uniqueMap.get("COLUMN_NAME") +"").replace("[","").replace("]","");
+                    if ( "null".equals((uniqueMap.get("COLUMN_NAME") +""))){//如果删除条件的字段数量为1 且这个字段值为空 则
+                        if (len !=1) sql += "" + column+ " is null ";
+                    }else {
+                        sql += "" + column+ " = '"+ ( param.get(column))+"'";
+                    }
+                    j++;
+                }
+                if (len !=1)   sql +=" ) ";
+                if (i!=list.size()-1){sql+=" or ";}
+                i++;
+            }
+            sql += " ) ";
+            pst = conn.prepareStatement(sql);
+            affectLines +=   pst.executeUpdate();
+        }
+        long endTime =System.currentTimeMillis();
+        logger.info(""+tbName +"表 "+affectLines+"行被删除, 耗时 "+DateUtil.getRocord(startTime,endTime));
+        return affectLines;
+    }
+
 
     public int updateTbCreator(List<Map<String, Object>> list ,String tbName,String column) {
         String sql = " update   " + tbName + " set "+column+" =? where "+column+" =? ";
