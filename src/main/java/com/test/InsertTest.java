@@ -52,8 +52,27 @@ public class InsertTest {
     }
 
     public static void main(String[] args) throws SQLException {
+        int count =20000;
+        int start =0;
+        int end = 20000;
+        int end1 =0;
+        int newSize =4520;
+        if(count >newSize){
+            int len =count % newSize ==0 ?count/newSize:(count/newSize)+1;
+           // int count1 = 5000;
+            for (int i = 0; i <len ; i++) {
+                int start1 = start+i*newSize;
+                if (i!=len-1){
+                     end1 =  start1+newSize;
+                }else{
+                     end1 =  end;
+                }
 
+                System.out.println("起始："+start1+" end："+end1);
+            }
+        }
 
+/*
         Connection conn = getMasterConnect();
         InsertTest insertTest =  new InsertTest();
         List<Map<String,Object>> list = query();
@@ -79,12 +98,12 @@ public class InsertTest {
         }
 
 
-       /* String str = "some string";
+       *//* String str = "some string";
         StringReader reader = new StringReader(str);
-        pst.setCharacterStream(1, reader, str.length());*/
+        pst.setCharacterStream(1, reader, str.length());*//*
 
         int num = pst.executeUpdate();
-        System.out.println(num);
+        System.out.println(num);*/
 
 }
 

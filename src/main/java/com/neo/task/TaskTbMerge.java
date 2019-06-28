@@ -30,8 +30,8 @@ public class TaskTbMerge  implements Callable<Map<String,String>> {
     String dbName ;//从库名
     String tbName;//表名
     CountDownLatch endLock;
-    int startIndex;
-    int maxIndex;
+    final int startIndex;
+    final int maxIndex;
     String masterDataSource;
     String uniqueConstraint;
 
@@ -59,16 +59,35 @@ public class TaskTbMerge  implements Callable<Map<String,String>> {
         int len = 0;
         Map<String,String> returnMap = null;
         try{
-            JDBCUtil salver  = new JDBCUtil(dbName);
+            //JDBCUtil salver  = new JDBCUtil(dbName);
             //查询从库的数据
-            String  querySql = SqlTools.queryDataPager(tbName,startIndex,maxIndex);
-            List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
-            //删除重复的数据
-            int i= batchDelete(list);
-            //获取当前主库表结构
-            List<Map<String, Object>> masterTbStruct = selectTableStructureByDbAndTb();
-            //插入数据
-            returnMap = new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStruct);
+            if (nums <5000){
+                String  querySql = SqlTools.queryDataPager(tbName,startIndex,maxIndex);
+                List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
+                //删除重复的数据
+                int i= batchDelete(list);
+                //获取当前主库表结构
+                List<Map<String, Object>> masterTbStruct = selectTableStructureByDbAndTb();
+                //插入数据
+                returnMap = new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStruct);
+            }else{
+                int newSize =5000;
+                int cycleLenth =nums % newSize ==0 ?nums/newSize:(nums/newSize)+1;
+                for (int i = 0; i <newSize ; i++) {
+                    int start1 = startIndex+i*newSize;
+                    int end1 =0;
+                    if (i!=len-1){
+                        end1 =  start1+newSize;
+                    }else{
+                        end1 =  maxIndex;
+                    }
+
+                    System.out.println("起始："+start1+" end："+end1);
+                }
+                returnMap = new HashMap<>();
+                returnMap.put("INSERT_COUNT","0");
+                returnMap.put("MESSAGE","测试新分页");
+            }
             long end = System.currentTimeMillis();
             return returnMap;
         }catch (Exception e){
