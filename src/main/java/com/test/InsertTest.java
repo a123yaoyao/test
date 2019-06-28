@@ -5,6 +5,7 @@ package com.test;
  * @Date: 2019/3/22/022 14:59
  * @Description:
  */
+import com.google.common.math.IntMath;
 import com.neo.util.CollectionUtil;
 import com.neo.util.DateUtil;
 import com.neo.util.StringUtils;
@@ -13,6 +14,7 @@ import oracle.sql.CLOB;
 
 
 import java.io.StringReader;
+import java.math.RoundingMode;
 import java.sql.*;
 import java.sql.Date;
 import java.util.*;
@@ -52,7 +54,15 @@ public class InsertTest {
     }
 
     public static void main(String[] args) throws SQLException {
-        int count =20000;
+
+        int nums = 12612;
+        int newSize = 5000;
+        System.out.println(IntMath.mod(nums,newSize)   );
+        System.out.println(IntMath.mod(10000,5000)   );
+        int cycleLenth = IntMath.divide(12612, 5000, RoundingMode.DOWN);
+        System.out.println(cycleLenth);
+
+      /*  int count =20000;
         int start =0;
         int end = 20000;
         int end1 =0;
@@ -71,7 +81,7 @@ public class InsertTest {
                 System.out.println("起始："+start1+" end："+end1);
             }
         }
-
+*/
 /*
         Connection conn = getMasterConnect();
         InsertTest insertTest =  new InsertTest();

@@ -2,10 +2,12 @@ package com.neo.task;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.google.common.math.IntMath;
 import com.neo.util.JDBCUtil;
 import com.neo.util.SqlTools;
 import org.apache.log4j.Logger;
 
+import java.math.RoundingMode;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @Auther: Administrator
@@ -26,12 +29,18 @@ public class TaskTbMerge  implements Callable<Map<String,String>> {
     private Logger logger = Logger.getLogger(TaskTbMerge.class);
 
     int i; //线程序号
+    private AtomicInteger i1;// = new AtomicInteger(i);
+
     int nums ;//一次同步数据量
+    private AtomicInteger nums1 ;//= new AtomicInteger(nums);
+
     String dbName ;//从库名
     String tbName;//表名
     CountDownLatch endLock;
-    final int startIndex;
-    final int maxIndex;
+    int startIndex;
+    private AtomicInteger startIndex1; //= new AtomicInteger(startIndex);
+    int maxIndex;
+    private AtomicInteger maxIndex1 ;//= new AtomicInteger(maxIndex);
     String masterDataSource;
     String uniqueConstraint;
 
@@ -46,6 +55,11 @@ public class TaskTbMerge  implements Callable<Map<String,String>> {
         this.startIndex =startIndex;
         this.maxIndex = maxIndex;
         this.uniqueConstraint =uniqueConstraint;
+        nums1 = new AtomicInteger(nums);
+        startIndex1 = new AtomicInteger(startIndex);
+        maxIndex1 = new AtomicInteger(maxIndex);
+        i1 = new AtomicInteger(i);
+
     }
 
     /**
@@ -55,13 +69,13 @@ public class TaskTbMerge  implements Callable<Map<String,String>> {
      * @throws Exception if unable to compute a result
      */
     @Override
-    public Map<String,String> call() throws Exception {
+    public   Map<String,String> call() throws Exception {
         int len = 0;
         Map<String,String> returnMap = null;
         try{
             //JDBCUtil salver  = new JDBCUtil(dbName);
             //查询从库的数据
-            if (nums <5000){
+            if (nums <=5000){
                 String  querySql = SqlTools.queryDataPager(tbName,startIndex,maxIndex);
                 List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
                 //删除重复的数据
@@ -71,22 +85,37 @@ public class TaskTbMerge  implements Callable<Map<String,String>> {
                 //插入数据
                 returnMap = new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStruct);
             }else{
+                int nums2 =nums1.get();
                 int newSize =5000;
-                int cycleLenth =nums % newSize ==0 ?nums/newSize:(nums/newSize)+1;
-                for (int i = 0; i <newSize ; i++) {
-                    int start1 = startIndex+i*newSize;
+                int startIndex2= startIndex1.get();
+                int maxIndex2 =maxIndex1.get();
+                logger.info(maxIndex2);
+                int cycleLenth =  IntMath.mod(nums,newSize) ==0 ? IntMath.divide(nums, newSize, RoundingMode.DOWN)
+                        : IntMath.checkedAdd(IntMath.divide(nums, newSize, RoundingMode.DOWN), 1);
+                for (int i = 0; i <cycleLenth ; i++) {
+                    int start1 = IntMath.checkedAdd(startIndex, IntMath.checkedMultiply(i,newSize));
                     int end1 =0;
-                    if (i!=len-1){
-                        end1 =  start1+newSize;
+                    if (i!=cycleLenth-1){
+                        end1 =  IntMath.checkedAdd(start1,newSize);
                     }else{
-                        end1 =  maxIndex;
+                        end1 = maxIndex1.get() ;
+                        IntMath.checkedAdd(start1,newSize);
                     }
 
-                    System.out.println("起始："+start1+" end："+end1);
+                    logger.info("起始："+start1+" end："+end1);
+                    String  querySql = SqlTools.queryDataPager(tbName,start1,end1);
+                    logger.info("当前线程名称："+Thread.currentThread().getName()+" 执行sql:"+querySql);
+                    List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
+                    //logger.info("list"+list.size());
+                    //删除重复的数据
+                    //int i=
+                            batchDelete(list);
+                    //获取当前主库表结构
+                    List<Map<String, Object>> masterTbStruct = selectTableStructureByDbAndTb();
+                    //插入数据
+                    returnMap = new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStruct);
                 }
-                returnMap = new HashMap<>();
-                returnMap.put("INSERT_COUNT","0");
-                returnMap.put("MESSAGE","测试新分页");
+
             }
             long end = System.currentTimeMillis();
             return returnMap;

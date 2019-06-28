@@ -38,12 +38,14 @@ public class LargeTbService{
         if (dataCount>1000 && dataCount<=10000){
             return dataCount%2000==0? dataCount/2000:dataCount/2000+1;
         }
-        if (dataCount>10000 && dataCount<=100000){
-            return dataCount%5000==0? dataCount/5000:dataCount/5000+1;
+        if (dataCount>10000 ){
+           // return dataCount%5000==0? dataCount/5000:dataCount/5000+1;
+            return  10;
         }
-        if (dataCount>100000 ){
+      /*  if (dataCount>100000 ){
             return 10;
-        }
+           // return dataCount%5000==0? dataCount/5000:dataCount/5000+1;
+        }*/
 
         return 1;
     }
@@ -52,11 +54,8 @@ public class LargeTbService{
         if (dataCount>1000 && dataCount<=10000){
             return 2000;
         }
-        if (dataCount>10000 && dataCount<=100000){
-            return 5000;
-        }
-        if (dataCount>100000 ){
-            return dataCount%10==0? dataCount/10:dataCount/10+1;
+        if (dataCount>10000){
+             return dataCount%10==0? dataCount/10:dataCount/10+1;
         }
 
         return dataCount;
@@ -109,13 +108,21 @@ public class LargeTbService{
             returnMap = //new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStructor);
                     new JDBCUtil(masterDataSource).batchInsertJsonArry1(tbName,list,masterTbStructor);
         }else{
+            /*测试*/
+           // threads =4 ;
+            //int  groupSize =126114;
+
             int groupSize =getGroupSize(dataCount);
             final BlockingQueue<Future<Map<String,String>>> queue = new LinkedBlockingQueue<>();
             final CountDownLatch  endLock = new CountDownLatch(threads); //结束门
-            final ExecutorService exec = Executors.newFixedThreadPool(threads);
+           final ExecutorService exec = Executors.newFixedThreadPool(threads);//最大并发
+            //final ExecutorService exec = Executors.newSingleThreadScheduledExecutor();
             for (int i = 0; i <threads ; i++) {
                 int startIndex = i * groupSize;
                 int maxIndex = startIndex + groupSize;
+                if (maxIndex >dataCount){
+                    maxIndex =dataCount;
+                }
                 Future<Map<String,String>> future = exec.submit(new TaskTbMerge(i, groupSize,masterDataSource,dbName,tbName,endLock,startIndex,maxIndex,uniqueConstraint));
                 queue.add(future);
             }
