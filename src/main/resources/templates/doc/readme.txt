@@ -1,1 +1,4 @@
-项目测试库 ORA-12899: 列 "BIMALL"."BIM_APPROACK"."BIM_INSPECTOR" 的值太大 (实际值: 35, 最大值: 32)
+项目测试库
+ORA-12899: 列 "BIMALL"."BIM_APPROACK"."BIM_INSPECTOR" 的值太大 (实际值: 35, 最大值: 32)
+ORA-12899: 列 "BIMALL"."BIM_WKCONF_R_TASK"."EAF_R_LEFTID" 的值太大 (实际值: 34, 最大值: 32)
+BIM_CONF_QUESTION ORA-01461: 仅能绑定要插入 LONG 列的 LONG 值
