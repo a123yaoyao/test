@@ -86,7 +86,6 @@ public class TbController  {
             if (null== dbName || dbName.trim().equals("")) dbName =masterDataSource;
             conn = DataSourceHelper.GetConnection(dbName);
             map = tbService.getTableByDB(dbName,tbName, page, rows, sort, order,conn);
-
         } catch (Exception e) {
             map.put("err", true);
             map.put("content", e.getMessage());
@@ -103,19 +102,16 @@ public class TbController  {
     public String mergeData(String dbName, String tbCollection) throws Exception {
         Connection masterConn = null ;//主库连接
         Connection slaverConn = null;//从库连接
-       // int groupSiz = 0; //每张表数据插入多次 一次插入的数据条数
         List<Map<String, Object>> list = null;
         List<Map<String, String>> result = new ArrayList<>();
         Map<String,Object> resu =new HashMap<>();
         String tbName = null;
-
         Map<String, String> resultMap = null;
         Map<String ,String> insertMessageMap = null;
         try{
             masterConn = DataSourceHelper.GetConnection(masterDataSource);
             slaverConn = DataSourceHelper.GetConnection(dbName);
             Long start =   System.currentTimeMillis();
-             //groupSiz= Integer.valueOf(   groupSize  );
             list = getParamList(tbCollection, "tbs");
             int insertCountRecord =0 ;
             int k=0;
@@ -128,8 +124,6 @@ public class TbController  {
                 insertCountRecord += count;//记录 每张表的数据条数的和
                 resultMap = new HashMap();
                 resultMap.put("TABLE_NAME", tbName);
-                //insertMessageMap =tbService.mergeData(dbName, tbName, masterDataSource, list, Integer.valueOf(groupSize),masterConn,slaverConn);
-
                 if (count<3000){
                     insertMessageMap =tbService.mergeData(dbName, tbName, masterDataSource, list, Integer.valueOf(groupSize),masterConn,slaverConn);
                 }else{
@@ -156,20 +150,10 @@ public class TbController  {
             resu.put("content",e.getMessage());
             logger.error(e.getMessage());
         }finally {
-
-            closeConn(masterConn,slaverConn);
-
-           /* if (null!=masterConn){
-                masterConn.close();
-            }
-            if (null!=slaverConn){
-                slaverConn.close();
-            }*/
+            closeConn(masterConn,slaverConn);//关闭所有数据源
         }
 
         return StringUtils.MapToString(resu);
-
-
     }
 
     private void closeConn(Connection masterConn, Connection slaverConn) {
