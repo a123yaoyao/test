@@ -15,6 +15,79 @@
     <script src="../js/app.js"></script>
 </head>
 <style type="text/css">
+
+    .datagrid-view{background-color:white;}
+     td.datagrid-header-over:hover,.datagrid-header-rownumber:hover
+        {
+         background: -moz-linear-gradient(100% 20% 90deg, #09A3EC, #20AAEC);
+        background: -webkit-gradient(linear, 50% 20%, 50% 100%, from(#20AAEC), to(#09A3EC));
+
+         }
+        .datagrid-header-inner,.datagrid-header-rownumber
+        {
+        background: -moz-linear-gradient(100% 20% 90deg, #6dc6e9, #0F9BDE);/**ie*/
+         background: -webkit-gradient(linear, 50% 20%, 50% 100%, from(#0F9BDE), to(#6dc6e9));/*firox*/
+        }
+        .datagrid-view1 .datagrid-body, .datagrid-view1 .datagrid-body .datagrid-body-inner
+        {
+         background: -moz-linear-gradient(left, #0F9BDE, #6dc6e9);
+         background: -webkit-gradient(linear,100% 50%, 30% 50%, from(#6dc6e9), to(#0F9BDE));
+        }
+         .datagrid-view1 .datagrid-body .datagrid-body-inner:hover
+        {
+
+        background: -moz-linear-gradient(left, #20AAEC, #09A3EC);
+        background: -webkit-gradient(linear,100% 50%, 30% 50%, from(#09A3EC), to(#20AAEC));
+        }
+        .datagrid-cell
+        {
+        border-width: 1px;
+        border-style: solid;
+        border-color: rgb(221, 221, 221);
+        border-image: initial;
+        color:white;
+        font-weight:bolder;
+    }
+        .datagrid-cell-rownumber
+        {
+        color:white;
+        background: -moz-linear-gradient(left, #0F9BDE, #6dc6e9);
+        background: -webkit-gradient(linear,100% 50%, 30% 50%, from(#6dc6e9), to(#0F9BDE));
+    }
+        .datagrid-row-over
+        {
+        background-color: #30b2dd;
+        color: white;
+    }
+        .datagrid-row-selected {
+        background: #0DA4CC;
+        color: white;
+    }
+        .panel-header {
+        background-color: #0AB2E4;
+        background: -webkit-linear-gradient(top,#E4ECEF 0,#17B3E2 80%);
+        background: -moz-linear-gradient(top,#E4ECEF 0,#17B3E2 80%);
+        background: -o-linear-gradient(top,#E4ECEF 0,#17B3E2 80%);
+        background: linear-gradient(to bottom,#E4ECEF 0,#17B3E2 80%);
+        background-repeat: repeat-x;
+        filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=#EFF5FF,endColorstr=#E0ECFF,GradientType=0);
+    }
+        .panel-title
+        {
+        color:white;
+        font-size: 14px;
+        font-weight: bold;
+        height: 20px;
+        line-height: 20px;
+        margin-left: 8px;
+    }
+        .panel-header
+        {
+        height: 22px;
+         }
+
+
+
     .comm_but {
         width: 68px;
         height: 30px;
@@ -46,15 +119,6 @@
     .am-popup-hd {
         background: url(../i/banner.jpg) right top no-repeat #fff;
 
-       /*border-radius: 8px;
-       box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
-        width: 330px;
-        padding: 25px 45px 40px;
-        position: absolute;
-        top: 50%;
-        left: 0;
-        right: 0;
-        margin: -200px auto auto;*/
     }
 
     .combo-arrow:hover {
@@ -199,7 +263,7 @@ textField:'text',onChange:uie_dgd_search" id="db">
 
                 var html ='<table class="am-table"><thead> <tr><th>序号</th><th>表名</th><th>同步条数</th> <th>信息</th></tr></thead>';
                 for(var i=0;i<list.length;i++){
-                    html +='<tr><td>'+(i+1)+'</td><td>'+list[i].TABLE_NAME+'</td><td>插入'+list[i].INSERT_COUNT+'条数据</td><td>'+list[i].MESSAGE+'</td></tr>';
+                    html +='<tr><td>'+(i+1)+'</td><td>'+list[i].TABLE_NAME+'</td><td>'+list[i].INSERT_COUNT+'条</td><td>'+list[i].MESSAGE+'</td></tr>';
                 }
                 html +="</table>"
                 //alert(html);

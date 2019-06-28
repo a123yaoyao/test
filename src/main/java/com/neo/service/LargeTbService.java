@@ -105,9 +105,9 @@ public class LargeTbService{
         returnMap.put("INSERT_COUNT","0");
         returnMap.put("MESSAGE","执行成功");
         int insertCount =0 ;
-        threads=1;//测试
+        //threads=1;//测试
         if (threads==1){
-            String sql ="select * from "+tbName ;
+            String sql ="select * from "+tbName;// +" where xml_clob is not null " ;
             List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(sql,new Object[][]{});
             List<Map<String,Object>> masterTbStructor = selectTableStructureByDbAndTb(tbName,  dbName);
             returnMap = //new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStructor);

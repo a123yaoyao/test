@@ -7,9 +7,14 @@ package com.test;
  */
 import com.neo.util.CollectionUtil;
 import com.neo.util.DateUtil;
+import com.neo.util.StringUtils;
+import oracle.sql.BLOB;
+import oracle.sql.CLOB;
 
 
+import java.io.StringReader;
 import java.sql.*;
+import java.sql.Date;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 
@@ -30,7 +35,9 @@ public class InsertTest {
         return con;
     }
 
-    public Connection getSlaverConnect(){
+    static Map<String,String> cloMapperType =new LinkedHashMap<>();
+
+    public static Connection getSlaverConnect(){
         Connection con = null;
         try {
             Class.forName("oracle.jdbc.driver.OracleDriver");
@@ -45,14 +52,60 @@ public class InsertTest {
     }
 
     public static void main(String[] args) throws SQLException {
-        Connection conn = getMasterConnect();
 
-        String sql = "  insert into SYS_EXPORT_SCHEMA_01(xml_clob) values ( to_clob('1')) ";
-        Statement statement =conn.createStatement();
-        int num = statement.executeUpdate(sql);
+
+        Connection conn = getMasterConnect();
+        InsertTest insertTest =  new InsertTest();
+        List<Map<String,Object>> list = query();
+       Map<String,Object> map = list.get(0);
+        // String test = list.get(0).get("XML_CLOB")+"";
+        String sql =   getInsertSql( "SYS_EXPORT_SCHEMA_01",list );
+        PreparedStatement pst =  conn.prepareStatement(sql);
+        int k=0;
+        for (String key :map.keySet()) {
+            k++;
+            if (key.equals("XML_CLOB")){
+                Clob clob = conn.createClob();
+                clob.setString(1,  map.get("XML_CLOB")+"");
+                pst.setClob(k, clob);
+            }
+            if (cloMapperType.get(key).equals("DATE")){
+                pst.setTimestamp(k, DateUtil.strToTimeStamp("2018-10-10 11:11:11"));
+            }
+            else{
+                if (map.get(key) ==null) pst.setObject(k,null);
+                else pst.setObject(k,map.get(key));
+            }
+        }
+
+
+       /* String str = "some string";
+        StringReader reader = new StringReader(str);
+        pst.setCharacterStream(1, reader, str.length());*/
+
+        int num = pst.executeUpdate();
         System.out.println(num);
 
 }
+
+    private static String getInsertSql(String tbName, List<Map<String, Object>> newData) {
+        StringBuilder sql = new StringBuilder();
+        Map<String,Object> m= newData.get(0);
+        sql.append("insert into "+tbName+" (");
+        for (Map.Entry<String, Object> mm:  m.entrySet()) {
+
+            sql .append(mm.getKey()+",") ;
+        }
+        sql.deleteCharAt(sql.length()-1);
+        sql .append(" ) values (");
+
+        for (int i=0;i<m.size();i++) {
+            sql .append(" ?,");
+        }
+        sql.deleteCharAt(sql.length()-1);
+        sql .append(" ) ");
+        return sql.toString();
+    }
 
     private String getInsertSql( List<Map<String, Object>> newData) {
         StringBuilder sql = new StringBuilder();
@@ -222,9 +275,9 @@ public class InsertTest {
 
     }
 
-    private List<Map<String,Object>> query(InsertTest ti) throws SQLException {
-        Connection connection = ti.getSlaverConnect();
-        String sql ="select * from BIM_DMM_NAV";
+    private static List<Map<String,Object>> query() throws SQLException {
+        Connection connection = getSlaverConnect();
+        String sql ="select * from SYS_EXPORT_SCHEMA_01 where  duplicate ='0' and process_order='-1' and error_count ='29'" ;
         ResultSet rs = executeQueryRS(sql,connection);
         ResultSetMetaData rsmd = null;
         // 结果集列数
@@ -240,7 +293,35 @@ public class InsertTest {
         while (rs.next()) {
             Map<String, Object> map = new HashMap<String, Object>();
             for (int i = 1; i <= columnCount; i++) {
-                map.put(rsmd.getColumnLabel(i), rs.getObject(i));
+                cloMapperType.put(rsmd.getColumnLabel(i),rsmd.getColumnTypeName(i));
+               // map.put(rsmd.getColumnLabel(i), rs.getObject(i));
+                if (rsmd.getColumnTypeName(i).equals("BLOB")){
+                    BLOB v = (BLOB) rs.getBlob(i);
+                    if (v==null){
+                        map.put(rsmd.getColumnLabel(i),null);
+                    }else{
+                        map.put(rsmd.getColumnLabel(i),StringUtils.BlobToString(v));
+                    }
+                }
+                if (rsmd.getColumnTypeName(i).equals("CLOB")){
+                    CLOB v = (CLOB) rs.getClob(i);
+                    if (v==null){
+                        map.put(rsmd.getColumnLabel(i),"");
+                    }else {
+                        map.put(rsmd.getColumnLabel(i), StringUtils.ClobToString(v));
+                    }
+
+                } else if(rsmd.getColumnTypeName(i).equals("DATE")){
+                    Date v =  rs.getDate(i);
+                    if (v==null){
+                        map.put(rsmd.getColumnLabel(i),null);
+                    }else {
+                        map.put(rsmd.getColumnLabel(i),DateUtil.DateToStr(v));
+                    }
+                }
+                else {
+                    map.put(rsmd.getColumnLabel(i), rs.getObject(i));
+                }
             }
             list.add(map);//每一个map代表一条记录，把所有记录存在list中
         }
@@ -248,11 +329,10 @@ public class InsertTest {
         return list ;
     }
 
-    private ResultSet executeQueryRS(String sql,Connection connection) throws SQLException {
+    private static ResultSet executeQueryRS(String sql, Connection connection) throws SQLException {
        PreparedStatement pst = connection.prepareStatement(sql);
         ResultSet resultSet=      pst  .executeQuery();
-       // connection.close();
-        //pst.close();
+
         return resultSet;
     }
 }

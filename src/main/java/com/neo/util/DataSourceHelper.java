@@ -1,5 +1,6 @@
 package com.neo.util;
 
+import ch.qos.logback.core.db.dialect.DBUtil;
 import org.apache.log4j.Logger;
 import org.springframework.context.ApplicationContext;
 
@@ -18,7 +19,9 @@ public class DataSourceHelper {
     /**
      * 日志对象
      */
-    private Logger logger = Logger.getLogger(JDBCUtil.class);
+    private static Logger logger = Logger.getLogger(JDBCUtil.class);
+
+    private static Connection conn;
 
 
     static ApplicationContext context = SpringContextUtil.getApplicationContext();
@@ -32,8 +35,8 @@ public class DataSourceHelper {
             try {
                 Class.forName(driver);
             } catch (ClassNotFoundException e) {
-                System.out.println("加载驱动错误");
-                System.out.println(e.getMessage());
+                logger.error("加载驱动错误");
+                logger.error(e.getMessage());
                 e.printStackTrace();
             }
 
@@ -48,6 +51,23 @@ public class DataSourceHelper {
         }
     }
 
+   /* public static synchronized  Connection GetConnection(String dbName)throws Exception
+    {
+        if(conn==null || conn.isClosed())
+        {
+            synchronized (DBUtil.class){
+                if(conn==null || conn.isClosed()){
+                    String url = context.getEnvironment().getProperty("spring.datasource."+dbName+".url");
+                    String username = context.getEnvironment().getProperty("spring.datasource."+dbName+".username");
+                    String password = context.getEnvironment().getProperty("spring.datasource."+dbName+".password");
+                    conn = DriverManager.getConnection(url, username, password);
+                }
+            }
+        }
+
+        return conn;
+    }
+*/
 
 
 

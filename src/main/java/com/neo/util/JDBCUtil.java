@@ -5,10 +5,8 @@ import oracle.sql.BLOB;
 import oracle.sql.CLOB;
 import org.apache.log4j.Logger;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.Reader;
-import java.io.StringReader;
+import javax.sql.rowset.serial.SerialClob;
+import java.io.*;
 import java.sql.*;
 import java.sql.Date;
 import java.util.*;
@@ -111,20 +109,27 @@ public class JDBCUtil {
                         }else{
                             map.put(rsmd.getColumnLabel(i),StringUtils.BlobToString(v));
                         }
-                        map.put(rsmd.getColumnLabel(i),StringUtils.BlobToString(v));
                     }
                     if (rsmd.getColumnTypeName(i).equals("CLOB")){
                         CLOB v = (CLOB) rs.getClob(i);
                         if (v==null){
-                            map.put(rsmd.getColumnLabel(i),null);
+                            map.put(rsmd.getColumnLabel(i),"");
                         }else {
                             map.put(rsmd.getColumnLabel(i),StringUtils.ClobToString(v));
                         }
 
-                    }else {
+                    } else if(rsmd.getColumnTypeName(i).equals("DATE")){
+                         Date v =  rs.getDate(i);
+                        if (v==null){
+                            map.put(rsmd.getColumnLabel(i),null);
+                        }else {
+                            map.put(rsmd.getColumnLabel(i),DateUtil.DateToStr(v));
+                        }
+                    }
+                    else {
                         map.put(rsmd.getColumnLabel(i), rs.getObject(i));
                     }
-                    map.put(rsmd.getColumnLabel(i), rs.getObject(i));
+
                 }
                 list.add(map);//每一个map代表一条记录，把所有记录存在list中
             }
@@ -219,7 +224,11 @@ public class JDBCUtil {
         } catch (Exception e) {
             logger.error(e.getMessage());
         }
-
+        try {
+            if(st !=null && !st.isClosed())st.close();
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+        }
         try {
             if(conn !=null && !conn.isClosed() )conn.close();
         } catch (Exception e) {
@@ -370,14 +379,13 @@ public class JDBCUtil {
         int result= 0;
 
         try {
-            //sql =  getInsertSql( tbName,  newData);
+            sql =  getInsertSql( tbName,  newData);
             conn.setAutoCommit(false);
-           // pst = conn.prepareStatement(sql);
-            result =     insertBatch2(tbName , newData,tbstruct);
-                  //  insertBatch1(tbName , newData, pst,tbstruct);
-            // insertBatch(tbName , newData, pst,tbstruct);
+            pst = conn.prepareStatement(sql);
+            result =    insertBatch1(tbName , newData, pst,tbstruct);
+
             long end = System.currentTimeMillis();
-            logger.info(tbName+"表批量插入了:"+newData.size()+"条数据 需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
+            logger.info(tbName+"表批量插入了:"+result+"条数据 需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
             int len= newData.size() ;
             returnMap.put("INSERT_COUNT",len+"");
             returnMap.put("MESSAGE","执行成功");
@@ -385,15 +393,15 @@ public class JDBCUtil {
             return returnMap;
         } catch (Exception e) {
             logger.error(sql.toString()+e.getMessage());
-
-            if (e.getMessage().contains("ORA-00001")){
+            returnMap.put("INSERT_COUNT","0");
+            returnMap.put("MESSAGE",e.getMessage());
+            /*if (e.getMessage().contains("ORA-00001")){
                 System.out.println("开始单条插入......................................................................................");
                 // logger.info("开始单条插入................");
                 return odinaryInsert(tbName,newData,tbstruct);
             }else{
-                returnMap.put("INSERT_COUNT","0");
-                returnMap.put("MESSAGE",e.getMessage());
-            }
+
+            }*/
 
         }finally {
             closeAll();
@@ -406,6 +414,8 @@ public class JDBCUtil {
         int[] ik = null;
         try {
             conn.setAutoCommit(false);
+            st =conn.createStatement();
+
             Map<String, Object> m = (Map<String, Object>) dat.get(0);
 
             String value = null;
@@ -421,8 +431,6 @@ public class JDBCUtil {
                 dataType = structure.get("DATA_TYPE") + "";
                 structureMap.put(cloumnName, dataType);
             }
-
-
             Map<String, Object> insertMap = (Map<String, Object>) dat.get(0);
             String finallySql ="";
             for (int i = 0; i < dat.size(); i++) {
@@ -438,7 +446,7 @@ public class JDBCUtil {
                     if (ma.get(k) == null) tempSql+= "null";
                     else{
                         if ("DATE".equals(dataType)){
-                            tempSql+= "to_char('2017-10-01','yyyy-mm-dd')";
+                            tempSql+= "to_char('"+ma.get(k)+"','yyyy-mm-dd HH:mm:ss')";
                         }
                         if ("Clob".equals(dataType)){
                             tempSql+= "to_clob('"+ma.get(k)+"')";
@@ -458,27 +466,28 @@ public class JDBCUtil {
                 tempSql += ")";
                 sql +=")";
                 finallySql = sql + tempSql;
-                pst.addBatch(finallySql);
+                st.addBatch(finallySql);
+                //pst.addBatch(finallySql);
                 if (i > 0 && i % 1000 == 0) {
-                    ik = pst.executeBatch();
+                    ik = st.executeBatch();
+                    //ik = pst.executeBatch();
                     conn.commit();
+                    st.clearBatch();
                     //清除批处理命令
-                    pst.clearBatch();
+                   // pst.clearBatch();
                     //如果不想出错后，完全没保留数据，则可以每执行一次提交一次，但得保证数据不会重复
                 }
             }
-            ik = pst.executeBatch();
+            ik = st.executeBatch();
+            //ik = pst.executeBatch();
             conn.commit();
-            pst.clearBatch();
+            st.clearBatch();
+           // pst.clearBatch();
             return ik.length;
         }catch (Exception e){
             e.printStackTrace();
             logger.error(e.getMessage());
         }
-        /*finally {
-            // closeAll();
-            return ik;
-        }*/
         return 0;
     }
 
@@ -630,81 +639,59 @@ public class JDBCUtil {
 
     private int insertBatch1(String tbName, List<Map<String, Object>> dat,PreparedStatement pst,List<Map<String, Object>> tbstruct) throws SQLException, IOException {
         int[] ik = null;
+        int affectRows =0 ;
+        conn.setAutoCommit(false);
+        Map<String, Object> m = (Map<String, Object>) dat.get(0);
+        String value = null;
+        Map<String, Object> ma = null;
+        String cloumnName = null;
+        String dataType = null;
+        java.sql.Date dateValue = null;
+        java.sql.Timestamp timestampValue = null;
+        boolean flag;
+        Map<String, String> structureMap = new LinkedHashMap<>();
+        for (Map<String, Object> structure : tbstruct) { //表 字段名和字段类型映射
+            cloumnName = structure.get("COLUMN_NAME") + "";
+            dataType = structure.get("DATA_TYPE") + "";
+            structureMap.put(cloumnName, dataType);
+        }
+        Map<String, Integer> nameIndexMapper = new LinkedHashMap<>();
+
+        Map<String, Object> insertMap = (Map<String, Object>) dat.get(0);
+
+        int mapperFlag =0;
+        for (String  col : insertMap.keySet()) { //表 字段名和字段类型映射
+            mapperFlag++;
+            nameIndexMapper.put(col,mapperFlag);
+        }
         try {
-            conn.setAutoCommit(false);
-            Map<String, Object> m = (Map<String, Object>) dat.get(0);
-
-            String value = null;
-            Map<String, Object> ma = null;
-            String cloumnName = null;
-            String dataType = null;
-            java.sql.Date dateValue = null;
-            java.sql.Timestamp timestampValue = null;
-            boolean flag;
-            Map<String, String> structureMap = new LinkedHashMap<>();
-            for (Map<String, Object> structure : tbstruct) { //表 字段名和字段类型映射
-                cloumnName = structure.get("COLUMN_NAME") + "";
-                dataType = structure.get("DATA_TYPE") + "";
-                structureMap.put(cloumnName, dataType);
-            }
-
-            Map<String, Integer> nameIndexMapper = new LinkedHashMap<>();
-
-            Map<String, Object> insertMap = (Map<String, Object>) dat.get(0);
-
-            int mapperFlag =0;
-            for (String  col : insertMap.keySet()) { //表 字段名和字段类型映射
-                mapperFlag++;
-                nameIndexMapper.put(col,mapperFlag);
-            }
-
             for (int i = 0; i < dat.size(); i++) {
                 ma = (Map<String, Object>) dat.get(i);
                 int j = 0;
-
                 for (String k : ma.keySet()) {
                     dataType   =   structureMap.get(k);
-                    mapperFlag = nameIndexMapper.get(k);
+                    mapperFlag =  nameIndexMapper.get(k);
                     if ("DATE".equals(dataType)){
                          if (ma.get(k) == null){
                              pst.setTimestamp(mapperFlag, null);
                          }else {
-                             timestampValue= DateUtil.strToTimeStamp( (ma.get(k)+"").substring(0, (ma.get(k)+"").indexOf(".")) );
+                             timestampValue= DateUtil.strToTimeStamp( (ma.get(k)+"") );
                              pst.setTimestamp(mapperFlag, timestampValue);
                          }
                     }
-                    if (("CLOB".equals(dataType))){
-                        if (ma.get(k) == null){
-                            pst.setObject(mapperFlag, null);
+                   else if (("CLOB".equals(dataType))){
+                        Clob clob = conn.createClob();
+
+                    /*    String aaa = ma.get(k)+"" ;
+                        if (aaa.contains("\"")){
+                            String b =aaa.replace("\"","");
+                            clob.setString(1, b);
                         }else {
-                            pst.setString(mapperFlag, "to_clob('"+ma.get(k)+"')");
-                           /* Clob clob = (Clob) ma.get(k);
-                            pst.setClob(mapperFlag,clob);*/
-                            //pst.setObject(mapperFlag,StringUtils.ClobToString((Clob) ma.get(k)));
-                         /*   oracle.sql.CLOB clob=oracle.sql.CLOB.createTemporary(conn, false, oracle.sql.CLOB.DURATION_SESSION);
-                            clob.open(oracle.sql.CLOB.MODE_READWRITE);
-                            clob.putString(mapperFlag,  ma.get(k)+"");
-                            pst.setClob(mapperFlag, clob);*/
-                            //map.put(rsmd.getColumnLabel(i),StringUtils.ClobToString(v));
-                            //pst.setObject(mapperFlag, "to_clob("+ma.get(k)+")");
-                            //pst.setObject(mapperFlag, "to_clob("+ma.get(k)+")");
-                            //pst.setBinaryStream(mapperFlag,new ByteArrayInputStream((ma.get(k)+"").getBytes()));
-                            //pst.setObject(mapperFlag,StringUtils.toOctal(ma.get(k)+""));
-                           // Reader clobReader = new StringReader(ma.get(k)+"");
-                          //  pst.setCharacterStream(mapperFlag, clobReader);// 替换sql语句中的？将String转CLOB
-                           // pst.setClob(mapperFlag,new javax.sql.rowset.serial.SerialClob((ma.get(k)+"").toCharArray()));
-                            //pst.setClob(mapperFlag, v);
-                        }
-                    }
-                 /*
-                    if (("BLOB".equals(dataType))){
-                        if (ma.get(k) == null){
-                            pst.setObject(mapperFlag, null);
-                        }else {
-                            BLOB v = (BLOB)ma.get(k);
-                            pst.setBlob(mapperFlag, v);
-                        }
-                    }*/else{
+                            clob.setString(1, aaa);
+                        }*/
+
+                        pst.setClob(mapperFlag, clob);
+                    }else{
                         if (ma.get(k) == null){
                             pst.setObject(mapperFlag, null);
                         }else {
@@ -728,14 +715,55 @@ public class JDBCUtil {
             pst.clearBatch();
             return ik.length;
         }catch (Exception e){
-            e.printStackTrace();
-            logger.error(e.getMessage());
+            logger.error("JDBCUtil 729行："+e.getMessage()+" ");
+            logger.info("************************单条插入************************");
+            conn.rollback();
+            conn.setAutoCommit(false);
+            for (int i = 0; i < dat.size(); i++) {
+                ma = (Map<String, Object>) dat.get(i);
+                int j = 0;
+
+                for (String k : ma.keySet()) {
+                    dataType   =   structureMap.get(k);
+                    mapperFlag =  nameIndexMapper.get(k);
+                    if ("DATE".equals(dataType)){
+                        if (ma.get(k) == null){
+                            pst.setTimestamp(mapperFlag, null);
+                        }else {
+                            timestampValue= DateUtil.strToTimeStamp( (ma.get(k)+"") );
+                            pst.setTimestamp(mapperFlag, timestampValue);
+                        }
+                    }
+                    if (("CLOB".equals(dataType))){
+                        Clob clob = conn.createClob();
+                        clob.setString(1, ma.get(k)+"");
+                        pst.setClob(mapperFlag, clob);
+                    }
+                    else if (("BLOB".equals(dataType))){
+                        if (ma.get(k) == null){
+                            pst.setObject(mapperFlag, null);
+                        }else {
+                            BLOB v = (BLOB)ma.get(k);
+                            pst.setBlob(mapperFlag, v);
+                        }
+                    }else{
+                        if (ma.get(k) == null){
+                            pst.setObject(mapperFlag, null);
+                        }else {
+                            String v = ma.get(k)+"";
+                            pst.setObject(mapperFlag, v);
+                        }
+                    }
+                }
+                logger.info("affectRows:"+affectRows +" PROCESS_ORDER "+ma.get("PROCESS_ORDER"));
+                affectRows += pst.executeUpdate();
+                conn.commit();
+
+            }
+           return affectRows;
+
         }
-        /*finally {
-            // closeAll();
-            return ik;
-        }*/
-        return 0;
+
     }
 
 

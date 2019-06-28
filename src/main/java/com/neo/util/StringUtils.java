@@ -27,7 +27,12 @@ import java.util.Map;
 public class StringUtils {
 
     public static void main(String[] args) {
-
+        String aaa ="作业 \"EAFBIM\".\"SYS_EXPORT_SCHEMA_01\" 因致命错误于 18:26:29 停止";
+        if (aaa.contains("\"")){
+            System.out.println(111111);
+        }
+        String bbb =aaa.replace("\"","");
+        System.out.println(bbb);
     }
 
 

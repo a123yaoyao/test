@@ -85,4 +85,8 @@ public class DateUtil {
     }
 
 
+    public static Object DateToStr(Date v) {
+      SimpleDateFormat sdf =new SimpleDateFormat("yyyy-mm-dd HH:mm:ss");
+      return sdf.format(v);
+    }
 }

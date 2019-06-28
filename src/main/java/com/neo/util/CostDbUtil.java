@@ -1,4 +1,5 @@
 /*
+
 package com.neo.util;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,10 +12,10 @@ import java.util.regex.Pattern;
 @Component
 public class CostDbUtil {
 
-    @Autowired
-    private static DataSource dataSource = (DataSource) AppConfig.getBean("dataSource");
 
-    */
+
+
+*/
 /**
      * 执行数据库插入操作
      *
@@ -24,29 +25,47 @@ public class CostDbUtil {
      * @throws SQLException SQL异常
      *//*
 
+
     public static int insertAll(String dbName, String tableName, List<Map<String, Object>> datas) throws SQLException {
         */
 /**影响的行数**//*
+*/
+/*
 
         int affectRowCount = -1;
         Connection connection = dataSource.getConnection();
         PreparedStatement preparedStatement = null;
         try {
-            */
+            *//*
+
+*/
 /**从数据库连接池中获取数据库连接**//*
+*/
+/*
 
             Map<String, Object> valueMap = datas.get(0);
-            */
+            *//*
+
+*/
 /**获取数据库插入的Map的键值对的值**//*
+*/
+/*
 
             Set<String> keySet = valueMap.keySet();
             Iterator<String> iterator = keySet.iterator();
-            */
+            *//*
+
+*/
 /**要插入的字段sql，其实就是用key拼起来的**//*
+*/
+/*
 
             StringBuilder columnSql = new StringBuilder();
-            */
+            *//*
+
+*/
 /**要插入的字段值，其实就是？**//*
+
 
             StringBuilder unknownMarkSql = new StringBuilder();
             Object[] keys = new Object[valueMap.size()];
@@ -61,8 +80,10 @@ public class CostDbUtil {
                 unknownMarkSql.append("?");
                 i++;
             }
-            */
+*/
 /**开始拼插入的sql语句**//*
+*/
+/*
 
             StringBuilder sql = new StringBuilder();
             sql.append("INSERT INTO `"+dbName+"`.");
@@ -73,12 +94,20 @@ public class CostDbUtil {
             sql.append(unknownMarkSql);
             sql.append(" )");
 
-            */
+            *//*
+
+*/
 /**执行SQL预编译**//*
+*/
+/*
 
             preparedStatement = connection.prepareStatement(sql.toString());
-            */
+            *//*
+
+*/
 /**设置不自动提交，以便于在出现异常的时候数据库回滚**//*
+*/
+/*
 
             connection.setAutoCommit(false);
             System.out.println(sql.toString());
@@ -110,7 +139,9 @@ public class CostDbUtil {
         return affectRowCount;
     }
 
-    */
+    *//*
+
+*/
 /**
      * 执行数据库插入操作
      *
@@ -119,20 +150,34 @@ public class CostDbUtil {
      * @return 影响的行数
      * @throws SQLException SQL异常
      *//*
+*/
+/*
 
     public static int insert(String tableName, Map<String, Object> valueMap) throws SQLException {
 
-        */
+        *//*
+
+*/
 /**获取数据库插入的Map的键值对的值**//*
+*/
+/*
 
         Set<String> keySet = valueMap.keySet();
         Iterator<String> iterator = keySet.iterator();
-        */
+        *//*
+
+*/
 /**要插入的字段sql，其实就是用key拼起来的**//*
+*/
+/*
 
         StringBuilder columnSql = new StringBuilder();
-        */
+        *//*
+
+*/
 /**要插入的字段值，其实就是？**//*
+*/
+/*
 
         StringBuilder unknownMarkSql = new StringBuilder();
         Object[] bindArgs = new Object[valueMap.size()];
@@ -147,8 +192,12 @@ public class CostDbUtil {
             bindArgs[i] = valueMap.get(key);
             i++;
         }
-        */
+        *//*
+
+*/
 /**开始拼插入的sql语句**//*
+*/
+/*
 
         StringBuilder sql = new StringBuilder();
         sql.append("INSERT INTO ");
@@ -161,7 +210,9 @@ public class CostDbUtil {
         return executeUpdate(sql.toString(), bindArgs);
     }
 
-    */
+    *//*
+
+*/
 /**
      * 执行更新操作
      *
@@ -171,23 +222,37 @@ public class CostDbUtil {
      * @return 影响的行数
      * @throws SQLException SQL异常
      *//*
+*/
+/*
 
     public static int update(String tableName, Map<String, Object> valueMap, Map<String, Object> whereMap) throws SQLException {
-        */
+        *//*
+
+*/
 /**获取数据库插入的Map的键值对的值**//*
+*/
+/*
 
         Set<String> keySet = valueMap.keySet();
         Iterator<String> iterator = keySet.iterator();
-        */
+        *//*
+
+*/
 /**开始拼插入的sql语句**//*
+*/
+/*
 
         StringBuilder sql = new StringBuilder();
         sql.append("UPDATE ");
         sql.append(tableName);
         sql.append(" SET ");
 
-        */
+        *//*
+
+*/
 /**要更改的的字段sql，其实就是用key拼起来的**//*
+*/
+/*
 
         StringBuilder columnSql = new StringBuilder();
         int i = 0;
@@ -201,8 +266,12 @@ public class CostDbUtil {
         }
         sql.append(columnSql);
 
-        */
+        *//*
+
+*/
 /**更新的条件:要更改的的字段sql，其实就是用key拼起来的**//*
+*/
+/*
 
         StringBuilder whereSql = new StringBuilder();
         int j = 0;
@@ -221,7 +290,9 @@ public class CostDbUtil {
         return executeUpdate(sql.toString(), objects.toArray());
     }
 
-    */
+    *//*
+
+*/
 /**
      * 执行删除操作
      *
@@ -230,25 +301,39 @@ public class CostDbUtil {
      * @return 影响的行数
      * @throws SQLException SQL执行异常
      *//*
+*/
+/*
 
     public static int delete(String tableName, Map<String, Object> whereMap) throws SQLException {
-        */
+        *//*
+
+*/
 /**准备删除的sql语句**//*
+*/
+/*
 
         StringBuilder sql = new StringBuilder();
         sql.append("DELETE FROM ");
         sql.append(tableName);
 
-        */
+        *//*
+
+*/
 /**更新的条件:要更改的的字段sql，其实就是用key拼起来的**//*
+*/
+/*
 
         StringBuilder whereSql = new StringBuilder();
         Object[] bindArgs = null;
         if (whereMap != null && whereMap.size() > 0) {
             bindArgs = new Object[whereMap.size()];
             whereSql.append(" WHERE ");
-            */
+            *//*
+
+*/
 /**获取数据库插入的Map的键值对的值**//*
+*/
+/*
 
             Set<String> keySet = whereMap.keySet();
             Iterator<String> iterator = keySet.iterator();
@@ -265,7 +350,9 @@ public class CostDbUtil {
         return executeUpdate(sql.toString(), bindArgs);
     }
 
-    */
+    *//*
+
+*/
 /**
      * 可以执行新增，修改，删除
      *
@@ -274,38 +361,64 @@ public class CostDbUtil {
      * @return 影响的行数
      * @throws SQLException SQL异常
      *//*
+*/
+/*
 
     public static int executeUpdate(String sql, Object[] bindArgs) throws SQLException {
-        */
+        *//*
+
+*/
 /**影响的行数**//*
+*/
+/*
 
         int affectRowCount = -1;
         Connection connection = null;
         PreparedStatement preparedStatement = null;
         try {
-            */
+            *//*
+
+*/
 /**从数据库连接池中获取数据库连接**//*
+*/
+/*
 
             connection = dataSource.getConnection();
-            */
+            *//*
+
+*/
 /**执行SQL预编译**//*
+*/
+/*
 
             preparedStatement = connection.prepareStatement(sql.toString());
-            */
+            *//*
+
+*/
 /**设置不自动提交，以便于在出现异常的时候数据库回滚**//*
+*/
+/*
 
             connection.setAutoCommit(false);
             System.out.println(getExecSQL(sql, bindArgs));
             if (bindArgs != null) {
-                */
+                *//*
+
+*/
 /**绑定参数设置sql占位符中的值**//*
+*/
+/*
 
                 for (int i = 0; i < bindArgs.length; i++) {
                     preparedStatement.setObject(i + 1, bindArgs[i]);
                 }
             }
-            */
+            *//*
+
+*/
 /**执行sql**//*
+*/
+/*
 
             affectRowCount = preparedStatement.executeUpdate();
             connection.commit();
@@ -336,7 +449,9 @@ public class CostDbUtil {
         return affectRowCount;
     }
 
-    */
+    *//*
+
+*/
 /**
      * 通过sql查询数据,
      * 慎用，会有sql注入问题
@@ -345,12 +460,16 @@ public class CostDbUtil {
      * @return 查询的数据集合
      * @throws SQLException
      *//*
+*/
+/*
 
     public static List<Map<String, Object>> query(String sql) throws SQLException {
         return executeQuery(sql, null);
     }
 
-    */
+    *//*
+
+*/
 /**
      * 执行sql通过 Map<String, Object>限定查询条件查询
      *
@@ -359,6 +478,8 @@ public class CostDbUtil {
      * @return List<Map < String ,   Object>>
      * @throws SQLException
      *//*
+*/
+/*
 
     public static List<Map<String, Object>> query(String tableName,
                                                   Map<String, Object> whereMap) throws Exception {
@@ -379,7 +500,9 @@ public class CostDbUtil {
         return query(tableName, false, null, whereClause, whereArgs, null, null, null, null);
     }
 
-    */
+    *//*
+
+*/
 /**
      * 执行sql条件参数绑定形式的查询
      *
@@ -389,6 +512,8 @@ public class CostDbUtil {
      * @return List<Map < String ,   Object>>
      * @throws SQLException
      *//*
+*/
+/*
 
     public static List<Map<String, Object>> query(String tableName,
                                                   String whereClause,
@@ -396,7 +521,9 @@ public class CostDbUtil {
         return query(tableName, false, null, whereClause, whereArgs, null, null, null, null);
     }
 
-    */
+    *//*
+
+*/
 /**
      * 执行全部结构的sql查询
      *
@@ -412,6 +539,8 @@ public class CostDbUtil {
      * @return List<Map < String ,   Object>>
      * @throws SQLException
      *//*
+*/
+/*
 
     public static List<Map<String, Object>> query(String tableName,
                                                   boolean distinct,
@@ -427,7 +556,9 @@ public class CostDbUtil {
 
     }
 
-    */
+    *//*
+
+*/
 /**
      * 执行查询
      *
@@ -436,6 +567,8 @@ public class CostDbUtil {
      * @return List<Map < String ,   Object>>结果集对象
      * @throws SQLException SQL执行异常
      *//*
+*/
+/*
 
     public static List<Map<String, Object>> executeQuery(String sql, Object[] bindArgs) throws SQLException {
         List<Map<String, Object>> datas = new ArrayList<>();
@@ -444,22 +577,34 @@ public class CostDbUtil {
         ResultSet resultSet = null;
 
         try {
-            */
+            *//*
+
+*/
 /**获取数据库连接池中的连接**//*
+*/
+/*
 
             connection = dataSource.getConnection();
             preparedStatement = connection.prepareStatement(sql);
             if (bindArgs != null) {
-                */
+                *//*
+
+*/
 /**设置sql占位符中的值**//*
+*/
+/*
 
                 for (int i = 0; i < bindArgs.length; i++) {
                     preparedStatement.setObject(i + 1, bindArgs[i]);
                 }
             }
             System.out.println(getExecSQL(sql, bindArgs));
-            */
+            *//*
+
+*/
 /**执行sql语句，获取结果集**//*
+*/
+/*
 
             resultSet = preparedStatement.executeQuery();
             getDatas(resultSet);
@@ -482,7 +627,9 @@ public class CostDbUtil {
     }
 
 
-    */
+    *//*
+
+*/
 /**
      * 将结果集对象封装成List<Map<String, Object>> 对象
      *
@@ -490,11 +637,17 @@ public class CostDbUtil {
      * @return 结果的封装
      * @throws SQLException
      *//*
+*/
+/*
 
     private static List<Map<String, Object>> getDatas(ResultSet resultSet) throws SQLException {
         List<Map<String, Object>> datas = new ArrayList<>();
-        */
+        *//*
+
+*/
 /**获取结果集的数据结构对象**//*
+*/
+/*
 
         ResultSetMetaData metaData = resultSet.getMetaData();
         while (resultSet.next()) {
@@ -513,7 +666,9 @@ public class CostDbUtil {
     }
 
 
-    */
+    *//*
+
+*/
 /**
      * Build an SQL query string from the given clauses.
      *
@@ -540,6 +695,8 @@ public class CostDbUtil {
      *                 formatted as LIMIT clause. Passing null denotes no LIMIT clause.
      * @return the SQL query string
      *//*
+*/
+/*
 
     private static String buildQueryString(
             boolean distinct, String tables, String[] columns, String where,
@@ -573,11 +730,15 @@ public class CostDbUtil {
         return query.toString();
     }
 
-    */
+    *//*
+
+*/
 /**
      * Add the names that are non-null in columns to s, separating
      * them with commas.
      *//*
+*/
+/*
 
     private static void appendColumns(StringBuilder s, String[] columns) {
         int n = columns.length;
@@ -595,7 +756,9 @@ public class CostDbUtil {
         s.append(' ');
     }
 
-    */
+    *//*
+
+*/
 /**
      * addClause
      *
@@ -603,6 +766,8 @@ public class CostDbUtil {
      * @param name   clauseName
      * @param clause clauseSelection
      *//*
+*/
+/*
 
     private static void appendClause(StringBuilder s, String name, String clause) {
         if (!isEmpty(clause)) {
@@ -611,13 +776,17 @@ public class CostDbUtil {
         }
     }
 
-    */
+    *//*
+
+*/
 /**
      * Returns true if the string is null or 0-length.
      *
      * @param str the string to be examined
      * @return true if str is null or zero length
      *//*
+*/
+/*
 
     private static boolean isEmpty(CharSequence str) {
         if (str == null || str.length() == 0)
@@ -627,15 +796,21 @@ public class CostDbUtil {
         }
     }
 
-    */
+    *//*
+
+*/
 /**
      * the pattern of limit
      *//*
+*/
+/*
 
     private static final Pattern sLimitPattern =
             Pattern.compile("\\s*\\d+\\s*(,\\s*\\d+\\s*)?");
 
-    */
+    *//*
+
+*/
 /**
      * After the execution of the complete SQL statement, not necessarily the actual implementation of the SQL statement
      *
@@ -643,6 +818,7 @@ public class CostDbUtil {
      * @param bindArgs Binding parameters
      * @return Replace? SQL statement executed after the
      *//*
+
 
     private static String getExecSQL(String sql, Object[] bindArgs) {
         StringBuilder sb = new StringBuilder(sql);
@@ -657,4 +833,5 @@ public class CostDbUtil {
     }
 
 }
+
 */

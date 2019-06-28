@@ -279,7 +279,7 @@ public class DbUtil {
                 try {
                     rows +=  pst.executeUpdate();
                     conn.commit();
-                    logger.info("插入第"+(i+1)+"条数据成功");
+                    logger.info("插入"+tbName+"第"+(i+1)+"条数据成功");
                 }catch (Exception e){
                     failureFlag =true ;
                     retrunMap.put("MESSAGE","EAF_ID为 "+ma.get("EAF_ID")+" 原因："+e.getMessage());
@@ -294,7 +294,7 @@ public class DbUtil {
 
 
             long end = System.currentTimeMillis();
-            logger.info("插入了:"+rows+"条数据需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
+            logger.info(tbName+"插入了:"+rows+"条数据需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
             retrunMap.put("INSERT_COUNT",rows+"");
             if(!failureFlag) retrunMap.put("MESSAGE","执行成功");
             return retrunMap;

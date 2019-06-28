@@ -1,1 +1,1 @@
-项目级数据插入停留在 BIM_ELEMENT_109_R
+项目测试库 ORA-12899: 列 "BIMALL"."BIM_APPROACK"."BIM_INSPECTOR" 的值太大 (实际值: 35, 最大值: 32)
