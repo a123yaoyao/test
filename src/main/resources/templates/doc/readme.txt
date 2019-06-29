@@ -7,3 +7,5 @@ BIM_QUALITY_PROBLEM	ORA-12899: 列 "BIMALL"."BIM_QUALITY_PROBLEM"."BIM_SITE" 的
 BIM_SECU_PROBLEM	ORA-12899: 列 "BIMALL"."BIM_SECU_PROBLEM"."BIM_SITE" 的值太大 (实际值: 204, 最大值: 200)
 --BIM_MOD_R_INS_R 表数据50多万 违反协议: [2] 内存溢出
 
+BIM_MOD_R_INS_R_H 12万条数据  Socket read timed out  连接关闭
+

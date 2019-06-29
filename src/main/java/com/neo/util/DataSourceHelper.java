@@ -29,7 +29,6 @@ public class DataSourceHelper {
 
     public static Connection GetConnection(String dbName) {
         Connection connection = null;
-
         try {
             String driver = context.getEnvironment().getProperty("spring.datasource."+dbName+".driverClassName");
             try {
@@ -39,12 +38,10 @@ public class DataSourceHelper {
                 logger.error(e.getMessage());
                 e.printStackTrace();
             }
-
             String url = context.getEnvironment().getProperty("spring.datasource."+dbName+".url");
             String username = context.getEnvironment().getProperty("spring.datasource."+dbName+".username");
             String password = context.getEnvironment().getProperty("spring.datasource."+dbName+".password");
             connection = DriverManager.getConnection(url, username, password);
-
             return connection;
         } catch (Exception e) {
             throw new RuntimeException(e);

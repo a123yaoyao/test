@@ -340,24 +340,22 @@ public class JDBCUtil {
         int result= 0;
         PreparedStatement pst = null;
         try {
-            sql =  getInsertSql( tbName,  newData);
+                sql =  getInsertSql( tbName,  newData);
             conn.setAutoCommit(false);
             pst = conn.prepareStatement(sql);
             result =    insertBatch1(tbName , newData, pst,tbstruct);
                        // insertBatch(tbName , newData, pst,tbstruct);
             long end = System.currentTimeMillis();
             logger.info(tbName+"表批量插入了:"+newData.size()+"条数据 需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
-            int len= newData.size() ;
-            returnMap.put("INSERT_COUNT",len+"");
+            returnMap.put("INSERT_COUNT",result+"");
             returnMap.put("MESSAGE","执行成功");
-            newData =null;
             return returnMap;
         } catch (Exception e) {
-            logger.error(sql.toString()+e.getMessage());
+            logger.error(e.getMessage());
+            logger.error("sql :"+sql);
 
             if (e.getMessage().contains("ORA-00001")){
                 System.out.println("开始单条插入......................................................................................");
-                // logger.info("开始单条插入................");
                 return odinaryInsert(tbName,newData,tbstruct);
             }else{
                 returnMap.put("INSERT_COUNT","0");
@@ -365,6 +363,7 @@ public class JDBCUtil {
             }
 
         }finally {
+            newData =null;
             closeAll();
         }
         return returnMap;
@@ -395,15 +394,8 @@ public class JDBCUtil {
             logger.error(sql.toString()+e.getMessage());
             returnMap.put("INSERT_COUNT","0");
             returnMap.put("MESSAGE",e.getMessage());
-            /*if (e.getMessage().contains("ORA-00001")){
-                System.out.println("开始单条插入......................................................................................");
-                // logger.info("开始单条插入................");
-                return odinaryInsert(tbName,newData,tbstruct);
-            }else{
 
-            }*/
-
-        }finally {
+             }finally {
             closeAll();
         }
         return returnMap;
@@ -536,7 +528,7 @@ public class JDBCUtil {
 
 
     private  String getInsertSql(String tbName, List<Map<String, Object>> newData) {
-        StringBuilder sql = new StringBuilder();
+        StringBuffer sql = new StringBuffer();
         Map<String,Object> m= newData.get(0);
         sql.append("insert into "+tbName+" (");
         for (Map.Entry<String, Object> mm:  m.entrySet()) {
@@ -935,10 +927,11 @@ public class JDBCUtil {
         try{
             long startTime = System.currentTimeMillis();
         int len = uniqueList.size(); //删除条件字段数量
-        if (len == 0) return 0;
+        if (len == 0 || null==data || data.size() ==0 ) return 0;
         //根据数据条数切割
         List<List<Map<String, Object>>> newData = CollectionUtil.splitList(data, data.size() / uniqueList.size());
-        //获得sql
+
+            //获得sql
         int affectLines = 0;
         for (List<Map<String, Object>> list : newData) { //
             String sql = " DELETE  FROM   " + tbName + " where 1=1 and ( ";
