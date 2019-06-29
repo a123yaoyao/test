@@ -8,4 +8,5 @@ BIM_SECU_PROBLEM	ORA-12899: 列 "BIMALL"."BIM_SECU_PROBLEM"."BIM_SITE" 的值太
 --BIM_MOD_R_INS_R 表数据50多万 违反协议: [2] 内存溢出
 
 BIM_MOD_R_INS_R_H 12万条数据  Socket read timed out  连接关闭
+EAF_OMS_OPERLOG_1表 449527 万条数据 Java heap space
 
