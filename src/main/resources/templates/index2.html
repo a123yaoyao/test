@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <!-- import CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+</head>
+<body>
+<div id="app">
+
+    <template>
+        <div class="app-container">
+
+            <el-row :gutter="20" style="padding: 20px;">
+                <el-col :span="4">
+                    <el-select v-model="dbSelected"  placeholder="请选择" @change="queryGridData">
+                        <el-option v-for="item in dbs" :key="item.id" :label="item.text" :value="item.id" ></el-option>
+                    </el-select>
+
+                </el-col>
+                <el-col :span="6">
+                    <el-input
+                            placeholder="请输入表名"
+                            v-model="tbName"
+                            clearable>
+                        <el-button slot="append" icon="el-icon-search" @click="initGridData"></el-button>
+                    </el-input>
+                </el-col>
+                <el-col :span="2">
+
+                    <el-button type="primary" @click="merge" :disabled="mergeDisabled">合并</el-button>
+                </el-col>
+
+            </el-row>
+
+        <el-table  v-loading="loading"
+                   element-loading-text="拼命加载中"
+                   element-loading-spinner="el-icon-loading"
+                   element-loading-background="rgba(0, 0, 0, 0.8)" :data="gridData" border :default-sort = "{prop: 'NUM_ROWS', order: 'descending'}" @selection-change="handleSelectionChange">
+            <el-table-column fixed label=" " type="index" width="45" :show-overflow-tooltip="true" label="序号"></el-table-column>
+            <el-table-column fixed type="selection" width="45" align="center" ></el-table-column>
+            <el-table-column property="TABLE_NAME" label="表名" width="210" align="center"></el-table-column>
+            <el-table-column property="NUM_ROWS" label="行数" width="200" align="center" sortable></el-table-column>
+            <el-table-column property="NUM_COLUMNS" label="列数" width="200" align="center" sortable></el-table-column>
+        </el-table>
+        <div>
+            <el-pagination layout="total, sizes, prev, pager, next" v-bind:total="pagination.total" v-bind:page-sizes="pagination.page_sizes" v-bind:page-size="pagination.page_size" v-bind:current-page="pagination.current_page" v-on:size-change="size_change" v-on:current-change="current_change"></el-pagination>
+        </div>
+        </div>
+    </template>
+
+    <el-dialog title="合并信息" :visible.sync="dialogTableVisible">
+        <el-table :data="mergeData" border>
+            <el-table-column type="index" label="序号" width="150"></el-table-column>
+            <el-table-column property="TABLE_NAME" label="表名" width="200"></el-table-column>
+            <el-table-column property="INSERT_COUNT" label="同步条数"></el-table-column>
+            <el-table-column property="MESSAGE" label="信息"></el-table-column>
+        </el-table>
+    </el-dialog>
+
+
+
+</div>
+</body>
+<!-- import Vue before Element -->
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<!-- import JavaScript -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script type="text/javascript" src="../jquery-easyui-1.7.0/jquery.min.js"></script>
+<script>
+
+
+    var vue = new Vue({
+        el:'#app',
+        methods:{initGridData:initGridData,size_change:size_change,current_change:current_change,loadDbs:loadDbs,
+                 merge:merge,queryGridData : queryGridData,
+            handleSelectionChange(val) {
+                this.multipleSelection = val;
+            },
+        },
+         data:{  pagination :{},
+                tbName : "",
+                dbs:[],
+                mergeData:[],
+                dialogTableVisible:false,
+                gridData:  [
+                    {
+                        TABLE_NAME: "xxx",
+                        NUM_ROWS: "0",
+                        NUM_COLUMNS: "0",
+                    }
+                ],
+                loading: true,
+                isMaster :"1",
+                dbSelected:"",
+                formLabelWidth: '120px',
+                mergeArr:[],//存放批量修改的数据
+                mergeDisabled:false
+            },
+        mounted:function(){
+            this.pagination={
+                total:this.gridData.length,
+                page_sizes:[10,20,50,100,200],
+                page_size:10,
+                current_page:1
+            };
+            this. loadDbs();
+            this.initGridData();
+
+
+
+        }
+    });
+
+    function merge() {
+        const length = this.multipleSelection.length;
+        if (length ==0) {
+            this.$message({
+                showClose: true,
+                message: '请选择至少一条数据',
+                type: 'warning'
+            });
+        }
+
+        var obj ={};
+        obj.tbs =this.multipleSelection;
+
+/*        for (let i = 0; i < length; i++) {
+            var obj ={};
+            obj.TABLE_NAME = this.multipleSelection[i].TABLE_NAME;
+            this.mergeArr.push(obj)
+        }*/
+      //  console.log(this.mergeArr);
+        var surl =  "../mergeData";
+        $.ajax({
+            url:surl,
+            type: 'POST',
+            dataType:'json',
+            data:{
+                "dbName":this.dbSelected,
+                "tbCollection":JSON.stringify(obj),
+            },
+            success:function(data){
+                vue.mergeData = data.list ;
+                vue.dialogTableVisible=true;
+            },
+            error:function(data){
+
+            }
+        });
+
+    }
+
+
+    function loadDbs(o){
+        $.ajax({
+            url:'../getAllByDB',
+            type: 'POST',
+            dataType:'json',
+            success:function(data) {
+                vue.dbs = data.list;
+                var  list =data.list;
+                for (var i = 0; i < list.length; i++) {
+                    if(list[i].IS_MASTER ==1 ){
+                       vue.dbSelected = list[i].id;
+                       vue.isMaster = 1;
+                       vue.mergeDisabled =true;
+                    };
+                }
+            }
+        });
+    }
+
+
+    function initGridData(o){
+
+
+        $.ajax({
+            type : "POST",
+            dataType : "json",
+            url : "../getTableByDB",
+            data : {
+                page : this.pagination.current_page,
+                rows : this.pagination.page_size,
+                dbName :this.dbSelected,
+                tbName :this.tbName
+            },
+            success : function(data) {
+                vue.gridData = data.rows;
+                vue.pagination.total = data.total;
+                vue.loading = false;
+                var list = vue.dbs;
+
+            },
+            error : function(err) {
+                vue.$notify({
+                    title: '警告',
+                    message: '加载列表数据时出错',
+                    position: 'bottom-right'
+                });
+            }
+        });
+
+    }
+
+    function queryGridData(selVal){
+        var lis = vue.dbs;
+        var flag = 0;
+        for(var i=0 ;i<lis.length ;i++){
+            if( lis[i].IS_MASTER ==1 && lis[i].id ==selVal){
+                vue.mergeDisabled =true;
+                flag=1;
+            }
+        }
+        if (flag ==0){
+            vue.mergeDisabled =false;
+        }
+
+
+        $.ajax({
+            type : "POST",
+            dataType : "json",
+            url : "../getTableByDB",
+            data : {
+                page : this.pagination.current_page,
+                rows : this.pagination.page_size,
+                dbName :this.dbSelected,
+                tbName :this.tbName
+            },
+            success : function(data) {
+                vue.gridData = data.rows;
+                vue.pagination.total = data.total;
+                vue.loading = false;
+                var list = vue.dbs;
+
+            },
+            error : function(err) {
+                vue.$notify({
+                    title: '警告',
+                    message: '加载列表数据时出错',
+                    position: 'bottom-right'
+                });
+            }
+        });
+
+    }
+
+    function size_change(o){
+        this.pagination.page_size = o;
+        this.initGridData();
+    }
+    function current_change(o){
+        this.pagination.current_page = o;
+        this.initGridData();
+    }
+
+</script>
+</html>

@@ -31,9 +31,7 @@ public  class CollectionUtil {
 
     // String类型 转 list
     public static List <String>  stringToList(String input) {
-
         return  Splitter.on(",").trimResults().splitToList(input.replace("[","").replace("]",""));
-
     }
 
 

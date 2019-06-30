@@ -5,17 +5,14 @@ package com.test;
  * @Date: 2019/3/22/022 14:59
  * @Description:
  */
-import com.google.common.math.IntMath;
-import com.neo.util.CollectionUtil;
+import java.sql.*;
 import com.neo.util.DateUtil;
 import com.neo.util.StringUtils;
 import oracle.sql.BLOB;
 import oracle.sql.CLOB;
 
 
-import java.io.StringReader;
-import java.math.RoundingMode;
-import java.sql.*;
+import javax.sql.RowSet;
 import java.sql.Date;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
@@ -55,12 +52,14 @@ public class InsertTest {
 
     public static void main(String[] args) throws SQLException {
 
-        int nums = 12612;
+        insertTest();
+
+     /*   int nums = 12612;
         int newSize = 5000;
         System.out.println(IntMath.mod(nums,newSize)   );
         System.out.println(IntMath.mod(10000,5000)   );
         int cycleLenth = IntMath.divide(12612, 5000, RoundingMode.DOWN);
-        System.out.println(cycleLenth);
+        System.out.println(cycleLenth);*/
 
       /*  int count =20000;
         int start =0;
@@ -116,6 +115,67 @@ public class InsertTest {
         System.out.println(num);*/
 
 }
+
+    private static void insertTest() throws SQLException {
+        Connection conn = getMasterConnect();
+        Connection slave =getSlaverConnect();
+        ResultSet rs  = null;
+        Statement st = null;
+        PreparedStatement pst = null;
+        try {
+             st = slave.createStatement();
+            String sql = "insert into BIM_ACM_NOTICES (EAF_ID, EAF_MODIFYTIME, EAF_CREATETIME, EAF_CREATOR, EAF_MODIFIER, NO_CREATEUSER, NO_TITLE, NO_NOTICES, NO_CREATETIME, NO_READUSER, NO_STATE, NO_PARAM3, NO_FORWARD, NO_FILENAME, NO_FILEPATH, NO_FILECREATETIME, NO_MODIFYUSER, NO_MODIFTIME, NO_RELEASEUSER, NO_RELEASETIME, NO_POJLIST, NO_FORWARDTIME, NO_FORWARDUSER, NO_PROJECT) " +
+                    " values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?);";
+             pst = conn.prepareStatement(sql);
+
+             rs  = st.executeQuery(" select * from BIM_ACM_NOTICES ");
+
+            ResultSetMetaData    rsmd = rs.getMetaData();
+            // 结果集列数
+            int  columnCount = rsmd.getColumnCount();
+            String cloname = null;
+            String type = null;
+            int s = 0;
+            while (rs.next()) {
+              //  Map<String, Object> map = new LinkedHashMap<String, Object>();
+                for (int i = 1; i <= columnCount; i++) {
+
+                    type = rsmd.getColumnTypeName(i);
+                    cloname = rsmd.getColumnName(i);
+                    System.out.println("字段名 "+cloname+" 类型 "+type +" 次数 "+ i);
+                    if ( null == rs.getObject(i) ){
+                        pst.setObject(i,null);
+                    }else {
+                        if ("DATE".equals(type)){
+                            pst.setObject(i,null);
+                        }
+                        else{
+                            pst.setObject(i,rs.getObject(i));
+                        }
+                    }
+
+
+
+                }
+                pst.executeUpdate();
+                conn.commit();
+                s++;
+            }
+            System.out.println("执行 "+s +"条数据");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            try {
+                rs.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            pst.close();
+            st.close();
+            slave.close();
+            conn.close();
+        }
+    }
 
     private static String getInsertSql(String tbName, List<Map<String, Object>> newData) {
         StringBuilder sql = new StringBuilder();

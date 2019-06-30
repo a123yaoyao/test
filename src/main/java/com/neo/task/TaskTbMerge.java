@@ -44,8 +44,11 @@ public class TaskTbMerge  implements Callable<Map<String,String>> {
     String masterDataSource;
     String uniqueConstraint;
 
+    List<Map<String,Object>> list ;
+    List<Map<String,Object>> masterTbStruct;
+
     public TaskTbMerge(int i, int nums,String masterDataSource, String dbName, String tbName, CountDownLatch endLock,
-                    int startIndex, int maxIndex,String uniqueConstraint){
+                    int startIndex, int maxIndex,String uniqueConstraint, List<Map<String,Object>> list ,List<Map<String,Object>> masterTbStruct){
         this.i =i;
         this.nums=nums;
         this.masterDataSource=masterDataSource;
@@ -59,6 +62,8 @@ public class TaskTbMerge  implements Callable<Map<String,String>> {
         startIndex1 = new AtomicInteger(startIndex);
         maxIndex1 = new AtomicInteger(maxIndex);
         i1 = new AtomicInteger(i);
+        this.list =list ;
+        this.masterTbStruct = masterTbStruct ;
 
     }
 
@@ -71,19 +76,25 @@ public class TaskTbMerge  implements Callable<Map<String,String>> {
     @Override
     public   Map<String,String> call() throws Exception {
         int len = 0;
+        Map<String,String> resultMap = new HashMap<>();
+        resultMap.put("INSERT_COUNT","0");
         Map<String,String> returnMap = null;
         try{
+
+            return new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStruct);
+/*
+
             //JDBCUtil salver  = new JDBCUtil(dbName);
             //查询从库的数据
-            if (nums <=5000){
+            if (nums <=3000){
                 String  querySql = SqlTools.queryDataPager(tbName,startIndex,maxIndex);
                 List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
                 //删除重复的数据
-                int i= batchDelete(list);
+               // int i= batchDelete(list);
                 //获取当前主库表结构
                 List<Map<String, Object>> masterTbStruct = selectTableStructureByDbAndTb();
                 //插入数据
-                returnMap = new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStruct);
+                return new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStruct);
             }else{
                 int nums2 =nums1.get();
                 int newSize =5000;
@@ -114,11 +125,13 @@ public class TaskTbMerge  implements Callable<Map<String,String>> {
                     List<Map<String, Object>> masterTbStruct = selectTableStructureByDbAndTb();
                     //插入数据
                     returnMap = new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStruct);
+                   // resultMap.put("INSERT_COUNT",Integer.valueOf(resultMap.get("INSERT_COUNT"))+ Integer.valueOf(returnMap.get("INSERT_COUNT"))+"" );
+                    resultMap.put("INSERT_COUNT",IntMath.checkedAdd(Integer.valueOf(resultMap.get("INSERT_COUNT")), Integer.valueOf(returnMap.get("INSERT_COUNT")))+"" );
                 }
 
-            }
-            long end = System.currentTimeMillis();
-            return returnMap;
+            }*/
+            //long end = System.currentTimeMillis();
+            //return resultMap;
         }catch (Exception e){
             e.printStackTrace();
             logger.error(e.getMessage());

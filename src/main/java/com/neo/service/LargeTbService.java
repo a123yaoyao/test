@@ -1,16 +1,18 @@
 package com.neo.service;
 
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.neo.model.DTO.TbDealDTO;
 import com.neo.task.TaskTbMerge;
+import com.neo.util.DbUtil;
 import com.neo.util.JDBCUtil;
+import com.neo.util.SqlTools;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 
 /**
@@ -102,28 +104,41 @@ public class LargeTbService{
         int insertCount =0 ;
         //threads=1;//测试
         if (threads==1){
-            String sql ="select * from "+tbName;// +" where xml_clob is not null " ;
+            String sql ="select * from "+tbName;
             List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(sql,new Object[][]{});
             List<Map<String,Object>> masterTbStructor = selectTableStructureByDbAndTb(tbName,  dbName);
             returnMap = //new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStructor);
                     new JDBCUtil(masterDataSource).batchInsertJsonArry1(tbName,list,masterTbStructor);
         }else{
-            /*测试*/
-           // threads =4 ;
-            //int  groupSize =126114;
-
             int groupSize =getGroupSize(dataCount);
             final BlockingQueue<Future<Map<String,String>>> queue = new LinkedBlockingQueue<>();
             final CountDownLatch  endLock = new CountDownLatch(threads); //结束门
            final ExecutorService exec = Executors.newFixedThreadPool(threads);//最大并发
             //final ExecutorService exec = Executors.newSingleThreadScheduledExecutor();
+            Map<Integer, List<Map<String,Object>>> map =new LinkedHashMap<>();
             for (int i = 0; i <threads ; i++) {
                 int startIndex = i * groupSize;
                 int maxIndex = startIndex + groupSize;
                 if (maxIndex >dataCount){
                     maxIndex =dataCount;
                 }
-                Future<Map<String,String>> future = exec.submit(new TaskTbMerge(i, groupSize,masterDataSource,dbName,tbName,endLock,startIndex,maxIndex,uniqueConstraint));
+                String  querySql = SqlTools.queryDataPager(tbName,startIndex,maxIndex);//先查询 再删除
+                List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
+                map.put(i,list);
+                batchDelete(list,tbName);
+            }
+
+            List<Map<String,Object>> masterTbStructor = selectTableStructureByDbAndTb(tbName,  dbName);
+
+            for (int i = 0; i <threads ; i++) {
+                int startIndex = i * groupSize;
+                int maxIndex = startIndex + groupSize;
+                if (maxIndex >dataCount){
+                    maxIndex =dataCount;
+                }
+                //Future<Map<String,String>> future = exec.submit(new TaskTbMerge(i, groupSize,masterDataSource,dbName,tbName,endLock,startIndex,maxIndex,uniqueConstraint));
+
+                Future<Map<String,String>> future = exec.submit(new TaskTbMerge(i, groupSize,masterDataSource,dbName,tbName,endLock,startIndex,maxIndex,uniqueConstraint,map.get(i),masterTbStructor));
                 queue.add(future);
             }
             endLock.await(); //主线程阻塞，直到所有线程执行完成
@@ -134,6 +149,64 @@ public class LargeTbService{
             returnMap.put("INSERT_COUNT",insertCount+"");
         }
         return returnMap;
+    }
+    /**
+     * 批量删除重复的数据
+     * @param data
+     * @return
+     * @throws Exception
+     */
+    private int batchDelete(List<Map<String, Object>> data,String tbName) throws Exception {
+        //获得列表中的唯一键
+        List<Map<String, Object>> uniqueList = getUniqueConstriant(tbName);
+        //批量删除重复数据
+        return new JDBCUtil(masterDataSource).batchDelete(data, uniqueList, tbName);
+    }
+
+    /**
+     * 获得唯一约束
+     */
+    private List<Map<String, Object>> getUniqueConstriant(String tbName) throws Exception {
+        List<Map<String, Object>> list = null;
+        JSONArray constraint = JSONArray.parseArray(uniqueConstraint);
+        JSONObject jsonObject =null;
+        for (int i = 0; i <constraint.size() ; i++) {
+            jsonObject = (JSONObject) constraint.get(i);
+            if (tbName.equals(jsonObject.get("table")+"")){
+                list = new ArrayList<>();
+                Map<String,Object> map =new HashMap<>();
+                map.put("COLUMN_NAME",(List<String>)jsonObject.get("column"));
+                map.put("IS_NEED_DEL",jsonObject.get("isNeedDel"));
+                list.add(map);
+                break;
+            }
+        }
+        if (null!= list)return list;
+        if (null == list){//判断该表是否存在eaf_Id
+            int i = hasEAFId(tbName);
+            list =new ArrayList<>();
+            Map<String,Object> map =new HashMap<>();
+            if (i==1) {
+                List<String> columns = new ArrayList<>();
+                columns.add("EAF_ID");
+                map.put("COLUMN_NAME",columns);
+                list.add(map);
+            }
+        }
+
+        for (Map<String,Object> map:list) {
+            map.put("IS_NEED_DEL",true);
+        }
+        return list;
+    }
+
+    private int hasEAFId(String tbName) throws SQLException {
+        String  sql="select count(0) as TABLE_NUMS  from user_tab_columns   \n" +
+                "where UPPER(column_name)='EAF_ID' AND TABLE_NAME = '"+tbName+"'";
+        List<Map<String,Object>> list =new JDBCUtil(masterDataSource).excuteQuery(sql,new Object[][]{});
+        String count =list.get(0).get("TABLE_NUMS")+"";
+        if ("1".equals(count) ) return 1;
+        else return 0;
     }
 
     /**

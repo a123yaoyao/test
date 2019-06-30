@@ -346,7 +346,7 @@ public class JDBCUtil {
             result =    insertBatch1(tbName , newData, pst,tbstruct);
                        // insertBatch(tbName , newData, pst,tbstruct);
             long end = System.currentTimeMillis();
-            logger.info(tbName+"表批量插入了:"+newData.size()+"条数据 需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
+            logger.info(tbName+"表批量插入了:"+result+"条数据 需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
             returnMap.put("INSERT_COUNT",result+"");
             returnMap.put("MESSAGE","执行成功");
             return returnMap;
@@ -694,17 +694,18 @@ public class JDBCUtil {
                 }
                 pst.addBatch();
 
-                if (i > 0 && i % 1000 == 0) {
+              /*  if (i > 0 && i % 1000 == 0) {
                     ik = pst.executeBatch();
                     conn.commit();
                     //清除批处理命令
                     pst.clearBatch();
                     //如果不想出错后，完全没保留数据，则可以每执行一次提交一次，但得保证数据不会重复
-                }
+                }*/
             }
             ik = pst.executeBatch();
             conn.commit();
             pst.clearBatch();
+            logger.info("************************影响的行数"+ik.length);
             return ik.length;
         }catch (Exception e){
             logger.error("JDBCUtil 729行："+e.getMessage()+" ");
