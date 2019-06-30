@@ -232,6 +232,29 @@ public class TbController  {
 
     }
 
+    @RequestMapping("/getTableStruct")
+    @ResponseBody
+    public String getTableStruct(String dbName,String tbName, String page,
+                               String rows, String sort, String order) throws SQLException {
+        List<Map<String, Object>> list= null;
+        Map<String,Object> map =new HashMap<>();
+        Connection conn = null ;
+        try {
+            if (null== dbName || dbName.trim().equals("")) dbName =masterDataSource;
+            conn = DataSourceHelper.GetConnection(dbName);
+            list = tbService.getTableStruct(dbName,tbName, page, rows, sort, order,conn);
+            map.put("list",list);
+        } catch (Exception e) {
+            map.put("err", true);
+            map.put("content", e.getMessage());
+        }finally {
+            if (conn != null) {
+                conn.close();
+            }
+        }
+        return StringUtils.MapToString(map);
+    }
+
 
 
     /**

@@ -1,5 +1,6 @@
 package com.neo.service;
 
+import ch.qos.logback.core.db.dialect.DBUtil;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 
@@ -740,5 +741,11 @@ public class TbService {
                 "\n" +
                 "select * from finall_user";
         System.out.println(querySql);
+    }
+
+    public List<Map<String, Object>> getTableStruct(String dbName, String tbName, String page, String rows, String sort, String order, Connection conn) throws SQLException {
+        DbUtil salverDbUtil =new DbUtil(conn);
+        List<Map<String, Object>> tb = selectTableStructureByDbAndTb( tbName,salverDbUtil);
+        return tb;
     }
 }

@@ -39,12 +39,35 @@
                    element-loading-background="rgba(0, 0, 0, 0.8)" :data="gridData" border :default-sort = "{prop: 'NUM_ROWS', order: 'descending'}" @selection-change="handleSelectionChange">
             <el-table-column fixed label=" " type="index" width="45" :show-overflow-tooltip="true" label="序号"></el-table-column>
             <el-table-column fixed type="selection" width="45" align="center" ></el-table-column>
-            <el-table-column property="TABLE_NAME" label="表名" width="210" align="center"></el-table-column>
+            <el-table-column property="TABLE_NAME" label="表名" width="310" align="center"></el-table-column>
             <el-table-column property="NUM_ROWS" label="行数" width="200" align="center" sortable></el-table-column>
             <el-table-column property="NUM_COLUMNS" label="列数" width="200" align="center" sortable></el-table-column>
+            <el-table-column
+                    align="right">
+
+                <template slot-scope="scope">
+                    <el-button
+                            size="mini"
+                            @click="handleEdit(scope.$index, scope.row)">Edit</el-button>
+                    <el-button
+                            size="mini"
+                            type="danger"
+                            @click="handleDelete(scope.$index, scope.row)">Delete</el-button>
+                </template>
+            </el-table-column>
         </el-table>
         <div>
-            <el-pagination layout="total, sizes, prev, pager, next" v-bind:total="pagination.total" v-bind:page-sizes="pagination.page_sizes" v-bind:page-size="pagination.page_size" v-bind:current-page="pagination.current_page" v-on:size-change="size_change" v-on:current-change="current_change"></el-pagination>
+
+
+            <el-pagination
+                    @size-change="size_change"
+                    @current-change="current_change"
+                    :current-page="pagination.current_page"
+                    :page-sizes="pagination.page_sizes"
+                    :page-size="pagination.page_size"
+                    layout="total, sizes, prev, pager, next, jumper"
+                    :total="pagination.total" style="padding: 20px;">
+
         </div>
         </div>
     </template>
@@ -55,6 +78,15 @@
             <el-table-column property="TABLE_NAME" label="表名" width="200"></el-table-column>
             <el-table-column property="INSERT_COUNT" label="同步条数"></el-table-column>
             <el-table-column property="MESSAGE" label="信息"></el-table-column>
+        </el-table>
+    </el-dialog>
+
+    <el-dialog title="表信息" :visible.sync="dialogTableStructVisible"  height="450">
+        <el-table :data="tableStructData" border>
+            <el-table-column type="index" label="序号" width="150"></el-table-column>
+            <el-table-column property="COLUMN_NAME" label="字段名称" width="200"></el-table-column>
+            <el-table-column property="DATA_TYPE" label="字段类型"></el-table-column>
+            <el-table-column property="DATA_LENGTH" label="字段长度"></el-table-column>
         </el-table>
     </el-dialog>
 
@@ -77,10 +109,33 @@
             handleSelectionChange(val) {
                 this.multipleSelection = val;
             },
+            handleEdit(index, row) {
+                $.ajax({
+                    url:'../getTableStruct',
+                    type: 'POST',
+                    dataType:'json',
+                    data:{
+                        "dbName":this.dbSelected,
+                        "tbName":row.TABLE_NAME,
+                    },
+                    success:function(data){
+                        vue.tableStructData =data.list;
+                        vue.dialogTableStructVisible =true;
+                    },
+                    error:function(data){
+
+                    }
+                });
+            },
+            handleDelete(index, row) {
+                console.log(index, row);
+            }
         },
          data:{  pagination :{},
                 tbName : "",
                 dbs:[],
+                dialogTableStructVisible :false,
+                tableStructData :[],
                 mergeData:[],
                 dialogTableVisible:false,
                 gridData:  [
@@ -124,13 +179,6 @@
 
         var obj ={};
         obj.tbs =this.multipleSelection;
-
-/*        for (let i = 0; i < length; i++) {
-            var obj ={};
-            obj.TABLE_NAME = this.multipleSelection[i].TABLE_NAME;
-            this.mergeArr.push(obj)
-        }*/
-      //  console.log(this.mergeArr);
         var surl =  "../mergeData";
         $.ajax({
             url:surl,
