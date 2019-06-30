@@ -6,10 +6,17 @@
     <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
 </head>
 <body>
+<style type="text/css">
+
+    body .el-table th.gutter{
+        display: table-cell!important;
+    }
+
+</style>
 <div id="app">
 
     <template>
-        <div class="app-container">
+
 
             <el-row :gutter="20" style="padding: 20px;">
                 <el-col :span="4">
@@ -33,30 +40,24 @@
 
             </el-row>
 
-        <el-table  v-loading="loading"
-                   element-loading-text="拼命加载中"
-                   element-loading-spinner="el-icon-loading"
-                   element-loading-background="rgba(0, 0, 0, 0.8)" :data="gridData" border :default-sort = "{prop: 'NUM_ROWS', order: 'descending'}" @selection-change="handleSelectionChange">
+        <el-table :data="gridData" border :default-sort = "{prop: 'NUM_ROWS', order: 'descending'}" @selection-change="handleSelectionChange">
             <el-table-column fixed label=" " type="index" width="45" :show-overflow-tooltip="true" label="序号"></el-table-column>
             <el-table-column fixed type="selection" width="45" align="center" ></el-table-column>
             <el-table-column property="TABLE_NAME" label="表名" width="310" align="center"></el-table-column>
             <el-table-column property="NUM_ROWS" label="行数" width="200" align="center" sortable></el-table-column>
             <el-table-column property="NUM_COLUMNS" label="列数" width="200" align="center" sortable></el-table-column>
             <el-table-column
-                    align="right">
+                     label="操作" align="center">
 
                 <template slot-scope="scope">
                     <el-button
                             size="mini"
-                            @click="handleEdit(scope.$index, scope.row)">Edit</el-button>
-                    <el-button
-                            size="mini"
-                            type="danger"
-                            @click="handleDelete(scope.$index, scope.row)">Delete</el-button>
+                            @click="handleEdit(scope.$index, scope.row)">查看</el-button>
                 </template>
+
             </el-table-column>
         </el-table>
-        <div>
+
 
 
             <el-pagination
@@ -68,8 +69,8 @@
                     layout="total, sizes, prev, pager, next, jumper"
                     :total="pagination.total" style="padding: 20px;">
 
-        </div>
-        </div>
+
+
     </template>
 
     <el-dialog title="合并信息" :visible.sync="dialogTableVisible">
@@ -126,9 +127,6 @@
 
                     }
                 });
-            },
-            handleDelete(index, row) {
-                console.log(index, row);
             }
         },
          data:{  pagination :{},
@@ -138,14 +136,7 @@
                 tableStructData :[],
                 mergeData:[],
                 dialogTableVisible:false,
-                gridData:  [
-                    {
-                        TABLE_NAME: "xxx",
-                        NUM_ROWS: "0",
-                        NUM_COLUMNS: "0",
-                    }
-                ],
-                loading: true,
+                gridData:  [],
                 isMaster :"1",
                 dbSelected:"",
                 formLabelWidth: '120px',
@@ -236,7 +227,6 @@
             success : function(data) {
                 vue.gridData = data.rows;
                 vue.pagination.total = data.total;
-                vue.loading = false;
                 var list = vue.dbs;
 
             },
@@ -278,7 +268,6 @@
             success : function(data) {
                 vue.gridData = data.rows;
                 vue.pagination.total = data.total;
-                vue.loading = false;
                 var list = vue.dbs;
 
             },
