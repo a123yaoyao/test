@@ -113,8 +113,8 @@ public class LargeTbService{
             int groupSize =getGroupSize(dataCount);
             final BlockingQueue<Future<Map<String,String>>> queue = new LinkedBlockingQueue<>();
             final CountDownLatch  endLock = new CountDownLatch(threads); //结束门
-           final ExecutorService exec = Executors.newFixedThreadPool(threads);//最大并发
-            //final ExecutorService exec = Executors.newSingleThreadScheduledExecutor();
+            final ExecutorService exec = Executors.newFixedThreadPool(threads);//最大并发
+           // final ExecutorService exec = Executors.newSingleThreadScheduledExecutor();
             Map<Integer, List<Map<String,Object>>> map =new LinkedHashMap<>();
             for (int i = 0; i <threads ; i++) {
                 int startIndex = i * groupSize;
@@ -124,9 +124,12 @@ public class LargeTbService{
                 }
                 String  querySql = SqlTools.queryDataPager(tbName,startIndex,maxIndex);//先查询 再删除
                 List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
-                map.put(i,list);
+               // map.put(i,list);
                 batchDelete(list,tbName);
+                list =null;
             }
+
+            System.gc();
 
             List<Map<String,Object>> masterTbStructor = selectTableStructureByDbAndTb(tbName,  dbName);
 

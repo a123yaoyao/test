@@ -124,11 +124,13 @@ public class TbController  {
                 insertCountRecord += count;//记录 每张表的数据条数的和
                 resultMap = new HashMap();
                 resultMap.put("TABLE_NAME", tbName);
-                if (count<3000){
+                insertMessageMap = largeTbService. mergeData( count, tbName, dbName);
+
+               /* if (count<3000){
                     insertMessageMap =tbService.mergeData(dbName, tbName, masterDataSource, list, Integer.valueOf(groupSize),masterConn,slaverConn);
                 }else{
                     insertMessageMap = largeTbService. mergeData( count, tbName, dbName);
-                }
+                }*/
                 resultMap.put("INSERT_COUNT",insertMessageMap.get("INSERT_COUNT") );
                 resultMap.put("MESSAGE",insertMessageMap.get("MESSAGE") );
                 result.add(resultMap);

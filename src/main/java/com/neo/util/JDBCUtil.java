@@ -353,14 +353,14 @@ public class JDBCUtil {
         } catch (Exception e) {
             logger.error(e.getMessage());
             logger.error("sql :"+sql);
-
-            if (e.getMessage().contains("ORA-00001")){
+            returnMap.put("INSERT_COUNT","0");
+            returnMap.put("MESSAGE",e.getMessage());
+         /*   if (e.getMessage().contains("ORA-00001")){
                 System.out.println("开始单条插入......................................................................................");
                 return odinaryInsert(tbName,newData,tbstruct);
             }else{
-                returnMap.put("INSERT_COUNT","0");
-                returnMap.put("MESSAGE",e.getMessage());
-            }
+
+            }*/
 
         }finally {
             newData =null;
@@ -631,6 +631,7 @@ public class JDBCUtil {
 
     private int insertBatch1(String tbName, List<Map<String, Object>> dat,PreparedStatement pst,List<Map<String, Object>> tbstruct) throws SQLException, IOException {
         int[] ik = null;
+        int returnLen=0;
         int affectRows =0 ;
         conn.setAutoCommit(false);
         Map<String, Object> m = (Map<String, Object>) dat.get(0);
@@ -673,15 +674,6 @@ public class JDBCUtil {
                     }
                    else if (("CLOB".equals(dataType))){
                         Clob clob = conn.createClob();
-
-                    /*    String aaa = ma.get(k)+"" ;
-                        if (aaa.contains("\"")){
-                            String b =aaa.replace("\"","");
-                            clob.setString(1, b);
-                        }else {
-                            clob.setString(1, aaa);
-                        }*/
-
                         pst.setClob(mapperFlag, clob);
                     }else{
                         if (ma.get(k) == null){
@@ -694,19 +686,19 @@ public class JDBCUtil {
                 }
                 pst.addBatch();
 
-              /*  if (i > 0 && i % 1000 == 0) {
+                if (i > 0 && i % 1000 == 0) {
                     ik = pst.executeBatch();
                     conn.commit();
                     //清除批处理命令
                     pst.clearBatch();
                     //如果不想出错后，完全没保留数据，则可以每执行一次提交一次，但得保证数据不会重复
-                }*/
+                }
             }
-            ik = pst.executeBatch();
+            returnLen  += pst.executeBatch().length;
             conn.commit();
             pst.clearBatch();
-            logger.info("************************影响的行数"+ik.length);
-            return ik.length;
+           // logger.info("************************影响的行数"+ik.length);
+            return returnLen;
         }catch (Exception e){
             logger.error("JDBCUtil 729行："+e.getMessage()+" ");
             logger.info("************************单条插入************************");
@@ -794,6 +786,7 @@ public class JDBCUtil {
      * @throws Exception
      */
     public int batchDelete(List<Map<String, Object>> data, List<Map<String, Object>> uniqueList, String tbName) throws Exception {
+        long start =System.currentTimeMillis();
         int len =0;
         try{
             String sql = " DELETE  FROM   " + tbName + " where 1=1 ";
@@ -857,7 +850,8 @@ public class JDBCUtil {
             logger.error("删除失败"+e.getMessage());
         }finally {
             closeAll();
-            logger.info("删除"+tbName +"表 "+len+"条数据成功！");
+            long end =System.currentTimeMillis();
+            logger.info("删除"+tbName +"表 "+len+"条数据成功 耗时："+((end-start)/1000)+" 秒") ;
             return len;
         }
     }

@@ -81,7 +81,13 @@ public class TaskTbMerge  implements Callable<Map<String,String>> {
         Map<String,String> returnMap = null;
         try{
 
-            return new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStruct);
+            String  querySql = SqlTools.queryDataPager(tbName,startIndex,maxIndex);
+            List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
+            returnMap =new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStruct);
+            list =null;
+            System.gc();
+            return returnMap;
+
 /*
 
             //JDBCUtil salver  = new JDBCUtil(dbName);

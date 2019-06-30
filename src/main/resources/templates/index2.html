@@ -40,7 +40,7 @@
 
             </el-row>
 
-        <el-table :data="gridData" border :default-sort = "{prop: 'NUM_ROWS', order: 'descending'}" @selection-change="handleSelectionChange">
+        <el-table v-loading="loading" :data="gridData" border :default-sort = "{prop: 'NUM_ROWS', order: 'descending'}" @selection-change="handleSelectionChange">
             <el-table-column fixed label=" " type="index" width="45" :show-overflow-tooltip="true" label="序号"></el-table-column>
             <el-table-column fixed type="selection" width="45" align="center" ></el-table-column>
             <el-table-column property="TABLE_NAME" label="表名" width="310" align="center"></el-table-column>
@@ -146,6 +146,7 @@
         },
          data:{  pagination :{},
                 tbName : "",
+                 loading :false,
                 dbs:[],
                 dialogTableStructVisible :false,
                 tableStructData :[],
@@ -185,6 +186,7 @@
 
         var obj ={};
         obj.tbs =this.multipleSelection;
+        vue.loading =true;
         var surl =  "../mergeData";
         $.ajax({
             url:surl,
@@ -197,9 +199,10 @@
             success:function(data){
                 vue.mergeData = data.list ;
                 vue.dialogTableVisible=true;
+                vue.loading =false;
             },
             error:function(data){
-
+                vue.loading =false;
             }
         });
 
@@ -227,8 +230,7 @@
 
 
     function initGridData(o){
-
-
+        this.loading =true;
         $.ajax({
             type : "POST",
             dataType : "json",
@@ -243,7 +245,7 @@
                 vue.gridData = data.rows;
                 vue.pagination.total = data.total;
                 var list = vue.dbs;
-
+                vue.loading =false;
             },
             error : function(err) {
                 vue.$notify({
@@ -251,6 +253,7 @@
                     message: '加载列表数据时出错',
                     position: 'bottom-right'
                 });
+                vue.loading =false;
             }
         });
 
@@ -269,7 +272,7 @@
             vue.mergeDisabled =false;
         }
 
-
+        vue.loading =true;
         $.ajax({
             type : "POST",
             dataType : "json",
@@ -284,7 +287,7 @@
                 vue.gridData = data.rows;
                 vue.pagination.total = data.total;
                 var list = vue.dbs;
-
+                vue.loading =false;
             },
             error : function(err) {
                 vue.$notify({
@@ -292,6 +295,7 @@
                     message: '加载列表数据时出错',
                     position: 'bottom-right'
                 });
+                vue.loading =false;
             }
         });
 
