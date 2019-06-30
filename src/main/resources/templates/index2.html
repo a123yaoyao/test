@@ -82,12 +82,18 @@
         </el-table>
     </el-dialog>
 
-    <el-dialog title="表信息" :visible.sync="dialogTableStructVisible"  height="450">
-        <el-table :data="tableStructData" border>
+    <el-dialog title="表信息" :visible.sync="dialogTableStructVisible"  height="450" >
+        <el-table :data="tableStructData" border :header-cell-style="{
+    'background-color': '#fafafa',
+    'color': 'rgb(103, 194, 58)',
+    'border-bottom': '1px rgb(103, 194, 58) solid',
+    'border-top': '1px rgb(103, 194, 58) solid'
+}">
             <el-table-column type="index" label="序号" width="150"></el-table-column>
             <el-table-column property="COLUMN_NAME" label="字段名称" width="200"></el-table-column>
             <el-table-column property="DATA_TYPE" label="字段类型"></el-table-column>
             <el-table-column property="DATA_LENGTH" label="字段长度"></el-table-column>
+            <el-table-column property="NULLABLE" :formatter="statusFormatter" label="是否为空"></el-table-column>
         </el-table>
     </el-dialog>
 
@@ -127,6 +133,15 @@
 
                     }
                 });
+            },
+            // 类型格式化
+            statusFormatter(row, column) {
+                let status = row.NULLABLE;
+                if(status === 'Y'){
+                    return  '是';
+                } else {
+                    return '否';
+                }
             }
         },
          data:{  pagination :{},
