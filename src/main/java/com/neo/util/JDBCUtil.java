@@ -80,7 +80,6 @@ public class JDBCUtil {
 
     public List<Map<String, Object>> excuteQuery(String sql, Object[] params) throws SQLException {
         long start =System.currentTimeMillis();
-
         // 执行SQL获得结果集
         ResultSet rs = executeQueryRS(sql, params);
         // 创建ResultSetMetaData对象
@@ -187,7 +186,6 @@ public class JDBCUtil {
             // 调用SQL
             conn.setAutoCommit(false);
             pst = conn.prepareStatement(sql);
-
             // 参数赋值
             if (params != null) {
                 for (int i = 0; i < params.length; i++) {
@@ -276,7 +274,6 @@ public class JDBCUtil {
                 int j=0;
                 for (String k:ma.keySet()) {
                     value =ma.get(k)+"";
-
                     if ("null".equals(value.trim())) value =null;
                     flag =false;
                     for (Map<String, Object> structure:tbstruct) {
@@ -292,9 +289,7 @@ public class JDBCUtil {
                             value =getValueByType(ma,k,dataType);
                             break;
                         }
-
                     }
-
                     if (flag)pst.setObject(j+1,dateValue);
                     else pst.setObject(j+1,value);
                     j++;
@@ -310,12 +305,8 @@ public class JDBCUtil {
                     if (!e.getMessage().contains("ORA-00001: 违反唯一约束条件")){
                         logger.error(sql.toString()+e.getMessage());
                     }
-
                 }
-
             }
-
-
             long end = System.currentTimeMillis();
             logger.info("插入了:"+rows+"条数据需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
             retrunMap.put("INSERT_COUNT",rows+"");
@@ -340,11 +331,10 @@ public class JDBCUtil {
         int result= 0;
         PreparedStatement pst = null;
         try {
-                sql =  getInsertSql( tbName,  newData);
+            sql =  getInsertSql( tbName,  newData);
             conn.setAutoCommit(false);
             pst = conn.prepareStatement(sql);
             result =    insertBatch1(tbName , newData, pst,tbstruct);
-                       // insertBatch(tbName , newData, pst,tbstruct);
             long end = System.currentTimeMillis();
             logger.info(tbName+"表批量插入了:"+result+"条数据 需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
             returnMap.put("INSERT_COUNT",result+"");
@@ -375,18 +365,15 @@ public class JDBCUtil {
         long start = System.currentTimeMillis();
         Map<String,String> returnMap =new HashMap<>();
         String  sql= null;
-        int result= 0;
-
         try {
             sql =  getInsertSql( tbName,  newData);
             conn.setAutoCommit(false);
             pst = conn.prepareStatement(sql);
-            result =    insertBatch1(tbName , newData, pst,tbstruct);
-
+            int result =    insertBatch1(tbName , newData, pst,tbstruct);
             long end = System.currentTimeMillis();
             logger.info(tbName+"表批量插入了:"+result+"条数据 需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
-            int len= newData.size() ;
-            returnMap.put("INSERT_COUNT",len+"");
+
+            returnMap.put("INSERT_COUNT",result+"");
             returnMap.put("MESSAGE","执行成功");
             newData =null;
             return returnMap;
@@ -394,7 +381,6 @@ public class JDBCUtil {
             logger.error(sql.toString()+e.getMessage());
             returnMap.put("INSERT_COUNT","0");
             returnMap.put("MESSAGE",e.getMessage());
-
              }finally {
             closeAll();
         }
@@ -528,7 +514,7 @@ public class JDBCUtil {
 
 
     private  String getInsertSql(String tbName, List<Map<String, Object>> newData) {
-        StringBuffer sql = new StringBuffer();
+        StringBuilder sql = new StringBuilder();
         Map<String,Object> m= newData.get(0);
         sql.append("insert into "+tbName+" (");
         for (Map.Entry<String, Object> mm:  m.entrySet()) {
@@ -553,7 +539,6 @@ public class JDBCUtil {
         try {
            conn.setAutoCommit(false);
            Map<String, Object> m = (Map<String, Object>) dat.get(0);
-
            String value = null;
            Map<String, Object> ma = null;
            String cloumnName = null;
@@ -577,14 +562,11 @@ public class JDBCUtil {
                 mapperFlag++;
                 nameIndexMapper.put(col,mapperFlag);
             }
-
            for (int i = 0; i < dat.size(); i++) {
                ma = (Map<String, Object>) dat.get(i);
                int j = 0;
-               //System.out.println("EAF_R_RIGHTID 长度："+(ma.get("EAF_R_RIGHTID")+"").length()) ;
                for (String k : ma.keySet()) {
                    value = ma.get(k) + "";
-
                    if ("null".equals(value.trim())) value = null;
                    flag = false;
                    dataType = structureMap.get(k);
@@ -649,9 +631,7 @@ public class JDBCUtil {
             structureMap.put(cloumnName, dataType);
         }
         Map<String, Integer> nameIndexMapper = new LinkedHashMap<>();
-
         Map<String, Object> insertMap = (Map<String, Object>) dat.get(0);
-
         int mapperFlag =0;
         for (String  col : insertMap.keySet()) { //表 字段名和字段类型映射
             mapperFlag++;
@@ -687,7 +667,7 @@ public class JDBCUtil {
                 pst.addBatch();
 
                 if (i > 0 && i % 1000 == 0) {
-                    ik = pst.executeBatch();
+                    returnLen  += pst.executeBatch().length;
                     conn.commit();
                     //清除批处理命令
                     pst.clearBatch();
@@ -868,7 +848,6 @@ public class JDBCUtil {
                 pst.addBatch();
             }
             dataArr =  pst.executeBatch();
-
             conn.commit();
             return dataArr.length;
         } catch (SQLException e) {
@@ -890,7 +869,6 @@ public class JDBCUtil {
         try {
             rs =   executeQueryRS(sql, params);
             rsmd = rs.getMetaData();
-
             // 获得结果集列数
             columnCount = rsmd.getColumnCount();
         } catch (SQLException e1) {

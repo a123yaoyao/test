@@ -130,18 +130,18 @@ public class LargeTbService{
                 List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
                // map.put(i,list);
 
-                //batchDelete(masterDataSource,dbName,list,tbName,startIndex,maxIndex);
-                Future<Integer> future = exec.submit(new TaskTbDelete(i, groupSize,masterDataSource,dbName,tbName,endLock,startIndex,maxIndex,uniqueConstraint,map.get(i),masterTbStructor));
-                queue1.add(future);
+                batchDelete(list,tbName);
+               // Future<Integer> future = exec.submit(new TaskTbDelete(i, groupSize,masterDataSource,dbName,tbName,endLock,startIndex,maxIndex,uniqueConstraint,map.get(i),masterTbStructor));
+               // queue1.add(future);
                 list =null;
             }
-                 int x =0;
+           /*      int x =0;
             for(Future<Integer> future : queue1){
                 x +=  future.get();
             } ;
             exec.shutdown(); //关闭线程池
 
-            System.gc();
+            System.gc();*/
 
 
 
