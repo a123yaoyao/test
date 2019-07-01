@@ -740,7 +740,7 @@ public class JDBCUtil {
                         }
                     }
                 }
-                logger.info("affectRows:"+affectRows +" PROCESS_ORDER "+ma.get("PROCESS_ORDER"));
+                logger.info("affectRows:"+affectRows +" EAF_ID "+ma.get("EAF_ID"));
                 affectRows += pst.executeUpdate();
                 conn.commit();
 

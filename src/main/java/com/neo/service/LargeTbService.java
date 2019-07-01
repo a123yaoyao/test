@@ -7,6 +7,7 @@ import com.neo.task.TaskTbMerge;
 import com.neo.util.DbUtil;
 import com.neo.util.JDBCUtil;
 import com.neo.util.SqlTools;
+import com.neo.util.TaskTbDelete;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -98,6 +99,7 @@ public class LargeTbService{
      * @throws Exception
      */
     private Map<String,String>  insertTbData(int threads,String dbName,String tbName,int dataCount) throws Exception {
+        List<Map<String,Object>> masterTbStructor = selectTableStructureByDbAndTb(tbName,  dbName);
         Map<String,String> returnMap =new HashMap<>();
         returnMap.put("INSERT_COUNT","0");
         returnMap.put("MESSAGE","执行成功");
@@ -106,12 +108,13 @@ public class LargeTbService{
         if (threads==1){
             String sql ="select * from "+tbName;
             List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(sql,new Object[][]{});
-            List<Map<String,Object>> masterTbStructor = selectTableStructureByDbAndTb(tbName,  dbName);
+            //List<Map<String,Object>> masterTbStructor = selectTableStructureByDbAndTb(tbName,  dbName);
             returnMap = //new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStructor);
                     new JDBCUtil(masterDataSource).batchInsertJsonArry1(tbName,list,masterTbStructor);
         }else{
             int groupSize =getGroupSize(dataCount);
             final BlockingQueue<Future<Map<String,String>>> queue = new LinkedBlockingQueue<>();
+            final BlockingQueue<Future<Integer>> queue1 = new LinkedBlockingQueue<>();
             final CountDownLatch  endLock = new CountDownLatch(threads); //结束门
             final ExecutorService exec = Executors.newFixedThreadPool(threads);//最大并发
            // final ExecutorService exec = Executors.newSingleThreadScheduledExecutor();
@@ -123,15 +126,24 @@ public class LargeTbService{
                     maxIndex =dataCount;
                 }
                 String  querySql = SqlTools.queryDataPager(tbName,startIndex,maxIndex);//先查询 再删除
+
                 List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
                // map.put(i,list);
-                batchDelete(list,tbName);
+
+                //batchDelete(masterDataSource,dbName,list,tbName,startIndex,maxIndex);
+                Future<Integer> future = exec.submit(new TaskTbDelete(i, groupSize,masterDataSource,dbName,tbName,endLock,startIndex,maxIndex,uniqueConstraint,map.get(i),masterTbStructor));
+                queue1.add(future);
                 list =null;
             }
+                 int x =0;
+            for(Future<Integer> future : queue1){
+                x +=  future.get();
+            } ;
+            exec.shutdown(); //关闭线程池
 
             System.gc();
 
-            List<Map<String,Object>> masterTbStructor = selectTableStructureByDbAndTb(tbName,  dbName);
+
 
             for (int i = 0; i <threads ; i++) {
                 int startIndex = i * groupSize;
