@@ -1,17 +1,15 @@
 package com.neo.service;
 
-import ch.qos.logback.core.db.dialect.DBUtil;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import com.neo.model.DTO.TbDealDTO;
+import com.neo.model.bo.TbDealBO;
 import com.neo.util.CollectionUtil;
 import com.neo.util.DataSourceHelper;
 import com.neo.util.DbUtil;
 import com.neo.util.JDBCUtil;
-import com.sun.xml.internal.bind.v2.TODO;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -352,8 +350,8 @@ public class TbService {
 
 
         // 对表数据进行特殊业务处理
-        TbDealDTO tbDealDTO =new TbDealDTO( tbName,masterDataSource, addColumns);
-        tbDealDTO.dealWithTbProblem();
+        TbDealBO tbDealBO =new TbDealBO( tbName,masterDataSource, addColumns);
+        tbDealBO.dealWithTbProblem();
         //将从库
         return returnMap;
     }
