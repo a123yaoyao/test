@@ -1,0 +1,149 @@
+.datagrid-row-selected {
+    background: #eee;
+    color: #000000;
+}
+ .datagrid-header-inner {
+    float: left;
+    width: 10000px;
+    border-top: 1px solid #EBEEF5;
+    background-color: white;
+}
+
+.datagrid-view{background-color:white;}
+ td.datagrid-header-over:hover,.datagrid-header-rownumber:hover
+    {
+     background: -moz-linear-gradient(100% 20% 90deg, #09A3EC, #20AAEC);
+    background: -webkit-gradient(linear, 50% 20%, 50% 100%, from(#20AAEC), to(#09A3EC));
+
+}
+    .datagrid-header-inner,.datagrid-header-rownumber
+    {
+    background: -moz-linear-gradient(100% 20% 90deg, #6dc6e9, #0F9BDE);/**ie*/
+    background: -webkit-gradient(linear, 50% 20%, 50% 100%, from(#0F9BDE), to(#6dc6e9));/*firox*/
+}
+    .datagrid-view1 .datagrid-body, .datagrid-view1 .datagrid-body .datagrid-body-inner
+    {
+     background: -moz-linear-gradient(left, #0F9BDE, #6dc6e9);
+     background: -webkit-gradient(linear,100% 50%, 30% 50%, from(#6dc6e9), to(#0F9BDE));
+}
+     .datagrid-view1 .datagrid-body .datagrid-body-inner:hover
+    {
+
+    background: -moz-linear-gradient(left, #20AAEC, #09A3EC);
+    background: -webkit-gradient(linear,100% 50%, 30% 50%, from(#09A3EC), to(#20AAEC));
+}
+    .datagrid-cell
+    {
+    border-width: 1px;
+    border-style: solid;
+    border-color: rgb(221, 221, 221);
+    border-image: initial;
+    color:white;
+    font-weight:bolder;
+}
+    .datagrid-cell-rownumber
+    {
+    color:white;
+    background: -moz-linear-gradient(left, #0F9BDE, #6dc6e9);
+    background: -webkit-gradient(linear,100% 50%, 30% 50%, from(#6dc6e9), to(#0F9BDE));
+}
+    .datagrid-row-over
+    {
+    background-color: #e6ebf5;
+    color: white;
+}
+   
+    .panel-header {
+    background-color: #0AB2E4;
+    background: -webkit-linear-gradient(top,#E4ECEF 0,#17B3E2 80%);
+    background: -moz-linear-gradient(top,#E4ECEF 0,#17B3E2 80%);
+    background: -o-linear-gradient(top,#E4ECEF 0,#17B3E2 80%);
+    background: linear-gradient(to bottom,#E4ECEF 0,#17B3E2 80%);
+    background-repeat: repeat-x;
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=#EFF5FF,endColorstr=#E0ECFF,GradientType=0);
+}
+    .panel-title
+    {
+    color:white;
+    font-size: 14px;
+    font-weight: bold;
+    height: 20px;
+    line-height: 20px;
+    margin-left: 8px;
+}
+    .panel-header
+    {
+    height: 22px;
+}
+
+
+
+.comm_but {
+    width: 68px;
+    height: 30px;
+}
+.but{
+    width: 68px;
+    height: 30px;
+    border: none;
+    color: white;
+    cursor: pointer;
+    background-color: cornflowerblue;
+    border-radius: 5px;
+}
+
+datagrid-header-row {
+    height: 43px;
+    background-color: #FFF;
+    color: #909399;
+    font-weight: 500;
+    display: table-header-group;
+    vertical-align: middle;
+    border-color: inherit;
+}
+
+.datagrid-header-row td{
+    height: 40px;
+    font-weight: bold;
+    text-align: center;
+    border-right: 1px solid #EBEEF5;
+}
+
+.datagrid-body td,.datagrid-footer td{
+    height: 45px;
+    border-right:0px;
+    overflow:hidden;
+    padding:0;
+    margin:0;
+    border-bottom: 1px solid #EBEEF5;
+    background-color: white;
+    border-right: 1px solid #EBEEF5;
+}
+
+.am-popup-hd {
+    background: url(../i/banner.jpg) right top no-repeat #fff;
+
+}
+
+.combo-arrow:hover {
+    background-color: white;
+}
+
+.combo-arrow {
+    background-color: white;
+}
+
+.textbox {
+    border: 1px solid #8080802e;
+}
+
+.combobox-item-selected {
+    background-color: #9e9e9e3d;
+}
+
+.panel-header, .panel-body {
+    border-color: #9e9e9e5c;
+}
+.card_body {
+    padding: 20px;
+}
