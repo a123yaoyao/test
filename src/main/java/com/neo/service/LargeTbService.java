@@ -2,12 +2,10 @@ package com.neo.service;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.neo.model.DTO.TbDealDTO;
+import com.neo.model.bo.TbDealBO;
 import com.neo.task.TaskTbMerge;
-import com.neo.util.DbUtil;
 import com.neo.util.JDBCUtil;
 import com.neo.util.SqlTools;
-import com.neo.util.TaskTbDelete;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -84,8 +82,8 @@ public class LargeTbService{
         if (dataNums ==0 ) return returnMap;//如果数据查询为0条直接返回
         returnMap = insertTbData(threads,dbName,tbName,dataNums);
         // 对表数据进行特殊业务处理
-        TbDealDTO tbDealDTO =new TbDealDTO( tbName,masterDataSource, addColumns);
-        tbDealDTO.dealWithTbProblem();
+        TbDealBO tbDealBO =new TbDealBO( tbName,masterDataSource, addColumns);
+        tbDealBO.dealWithTbProblem();
         return  returnMap;
     }
 

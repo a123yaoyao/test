@@ -1,7 +1,7 @@
-.datagrid-row-selected {
+/*.datagrid-row-selected {
     background: #eee;
     color: #000000;
-}
+}*/
  .datagrid-header-inner {
     float: left;
     width: 10000px;
@@ -10,12 +10,12 @@
 }
 
 .datagrid-view{background-color:white;}
- td.datagrid-header-over:hover,.datagrid-header-rownumber:hover
+/* td.datagrid-header-over:hover,.datagrid-header-rownumber:hover
     {
      background: -moz-linear-gradient(100% 20% 90deg, #09A3EC, #20AAEC);
     background: -webkit-gradient(linear, 50% 20%, 50% 100%, from(#20AAEC), to(#09A3EC));
 
-}
+}*/
     .datagrid-header-inner,.datagrid-header-rownumber
     {
     background: -moz-linear-gradient(100% 20% 90deg, #6dc6e9, #0F9BDE);/**ie*/
@@ -26,12 +26,12 @@
      background: -moz-linear-gradient(left, #0F9BDE, #6dc6e9);
      background: -webkit-gradient(linear,100% 50%, 30% 50%, from(#6dc6e9), to(#0F9BDE));
 }
-     .datagrid-view1 .datagrid-body .datagrid-body-inner:hover
+/*     .datagrid-view1 .datagrid-body .datagrid-body-inner:hover
     {
 
     background: -moz-linear-gradient(left, #20AAEC, #09A3EC);
     background: -webkit-gradient(linear,100% 50%, 30% 50%, from(#09A3EC), to(#20AAEC));
-}
+}*/
     .datagrid-cell
     {
     border-width: 1px;
@@ -125,9 +125,9 @@ datagrid-header-row {
 
 }
 
-.combo-arrow:hover {
+/*.combo-arrow:hover {
     background-color: white;
-}
+}*/
 
 .combo-arrow {
     background-color: white;
@@ -137,9 +137,9 @@ datagrid-header-row {
     border: 1px solid #8080802e;
 }
 
-.combobox-item-selected {
+/*.combobox-item-selected {
     background-color: #9e9e9e3d;
-}
+}*/
 
 .panel-header, .panel-body {
     border-color: #9e9e9e5c;
