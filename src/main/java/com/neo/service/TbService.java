@@ -753,12 +753,20 @@ public class TbService {
     }
 
     public Map<String,Object> editTableStruct(String dbName, String tbName, JsonObject jo , Connection conn) {
-
+       Map<String,Object> returnMap = new HashMap<>();
 
         Gson googleJson = new Gson();
         Map<String,Object> map =  googleJson.fromJson(jo, HashMap.class);
         String sql = "alter table "+tbName+" modify "+map.get("COLUMN_NAME")+" "+map.get("DATA_TYPE")+"("+map.get("DATA_LENGTH")+")";
-         int i =new JDBCUtil(dbName).executeUpdate(sql,new Object[][]{}) ;
-         return new HashMap<>();
+        try{
+            int i =new JDBCUtil(dbName).executeUpdate(sql) ;
+            returnMap.put("code","200");
+        }catch (Exception e){
+            System.out.println(e.getMessage());
+            returnMap.put("err",true);
+            returnMap.put("content",e.getMessage());
+        }
+
+         return returnMap;
     }
 }

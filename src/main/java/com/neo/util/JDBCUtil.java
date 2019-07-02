@@ -10,6 +10,7 @@ import java.io.*;
 import java.sql.*;
 import java.sql.Date;
 import java.util.*;
+import java.util.concurrent.Executors;
 
 /**
  * @Auther: Administrator
@@ -179,7 +180,6 @@ public class JDBCUtil {
     public int executeUpdate(String sql, Object[] params) {
         // 受影响的行数
         int affectedLine = 0;
-
         try {
             // 获得连接
             //  conn = this.getConnection();
@@ -198,7 +198,35 @@ public class JDBCUtil {
         } catch (SQLException e) {
             logger.error(e.getMessage());
             e.fillInStackTrace();
+        } finally{
+            closeAll();
+        }
+        return affectedLine;
+    }
 
+    /**
+     * insert update delete SQL语句的执行的统一方法 执行完关闭连接
+     * @param sql SQL语句
+     * @param params 参数数组，若没有参数则为null
+     * @return 受影响的行数
+     */
+    public int executeUpdate(String sql) throws Exception {
+        // 受影响的行数
+        int affectedLine = 0;
+        try {
+            // 获得连接
+            //  conn = this.getConnection();
+            // 调用SQL
+            conn.setAutoCommit(false);
+            pst = conn.prepareStatement(sql);
+            // 参数赋值
+            // 执行
+            affectedLine = pst.executeUpdate();
+            conn.commit();
+        } catch (SQLException e) {
+            logger.error(e.getMessage());
+            e.fillInStackTrace();
+            throw new Exception(e.getMessage());
         } finally{
             closeAll();
         }
