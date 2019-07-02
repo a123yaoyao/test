@@ -1,5 +1,6 @@
 package com.neo.web;
 
+import com.alibaba.fastjson.JSONArray;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -112,6 +113,7 @@ public class TbController  {
             masterConn = DataSourceHelper.GetConnection(masterDataSource);
             slaverConn = DataSourceHelper.GetConnection(dbName);
             Long start =   System.currentTimeMillis();
+
             list = getParamList(tbCollection, "tbs");
             int insertCountRecord =0 ;
             int k=0;
@@ -246,6 +248,32 @@ public class TbController  {
             conn = DataSourceHelper.GetConnection(dbName);
             list = tbService.getTableStruct(dbName,tbName, page, rows, sort, order,conn);
             map.put("list",list);
+        } catch (Exception e) {
+            map.put("err", true);
+            map.put("content", e.getMessage());
+        }finally {
+            if (conn != null) {
+                conn.close();
+            }
+        }
+        return StringUtils.MapToString(map);
+    }
+
+    @RequestMapping("/editTableStruct")
+    @ResponseBody
+    public String editTableStruct(String dbName,String tbName,String content) throws SQLException {
+        List<Map<String, Object>> list= null;
+        Map<String,Object> map =new HashMap<>();
+        Connection conn = null ;
+        try {
+            if (null== dbName || dbName.trim().equals("")) dbName =masterDataSource;
+            JsonParser jsonParser = new JsonParser();
+            JsonObject jo = (JsonObject) jsonParser.parse(content);
+            list = getParamList(content, "content");
+            conn = DataSourceHelper.GetConnection(dbName);
+
+            map = tbService.editTableStruct(dbName,tbName, jo,conn);
+            map.put("code",200);
         } catch (Exception e) {
             map.put("err", true);
             map.put("content", e.getMessage());

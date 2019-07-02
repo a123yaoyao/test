@@ -4,10 +4,13 @@ import ch.qos.logback.core.db.dialect.DBUtil;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.neo.model.DTO.TbDealDTO;
 import com.neo.util.CollectionUtil;
 import com.neo.util.DataSourceHelper;
 import com.neo.util.DbUtil;
+import com.neo.util.JDBCUtil;
 import com.sun.xml.internal.bind.v2.TODO;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
@@ -747,5 +750,15 @@ public class TbService {
         DbUtil salverDbUtil =new DbUtil(conn);
         List<Map<String, Object>> tb = selectTableStructureByDbAndTb( tbName,salverDbUtil);
         return tb;
+    }
+
+    public Map<String,Object> editTableStruct(String dbName, String tbName, JsonObject jo , Connection conn) {
+
+
+        Gson googleJson = new Gson();
+        Map<String,Object> map =  googleJson.fromJson(jo, HashMap.class);
+        String sql = "alter table "+tbName+" modify "+map.get("COLUMN_NAME")+" "+map.get("DATA_TYPE")+"("+map.get("DATA_LENGTH")+")";
+         int i =new JDBCUtil(dbName).executeUpdate(sql,new Object[][]{}) ;
+         return new HashMap<>();
     }
 }
