@@ -34,8 +34,6 @@ public class TbController  {
     @Autowired
     TbService tbService;
 
-   /* @Autowired
-    TableService tableService;*/
     @Autowired
     LargeTbService largeTbService;
 
@@ -56,7 +54,6 @@ public class TbController  {
     @RequestMapping("/")
     public String index() {
        return "index";
-               //"user_list";
     }
 
     @RequestMapping("/getAllByDB")
