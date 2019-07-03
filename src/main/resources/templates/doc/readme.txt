@@ -11,3 +11,6 @@ BIM_MOD_R_INS_R_H 12万条数据  Socket read timed out  连接关闭
 EAF_OMS_OPERLOG_1表 449527 万条数据 Java heap space
 EAF_OMS_OPERLOG_1表大文本过多 一次查询5000条 超出oracle缓冲区大小
 
+
+
+
