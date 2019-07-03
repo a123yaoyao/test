@@ -744,7 +744,7 @@ public class TbService {
         System.out.println(querySql);
     }
 
-    public List<Map<String, Object>> getTableStruct(String dbName, String tbName, String page, String rows, String sort, String order, Connection conn) throws SQLException {
+    public List<Map<String, Object>> getTableStruct(String dbName, String tbName, Connection conn) throws SQLException {
         DbUtil salverDbUtil =new DbUtil(conn);
         List<Map<String, Object>> tb = selectTableStructureByDbAndTb( tbName,salverDbUtil);
         return tb;

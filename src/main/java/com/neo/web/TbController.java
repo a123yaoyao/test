@@ -5,6 +5,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.neo.model.vo.ServerResponse;
 import com.neo.service.LargeTbService;
 //import com.neo.service.TableService;
 import com.neo.service.TbService;
@@ -76,7 +77,7 @@ public class TbController  {
 
     @RequestMapping("/getTableByDB")
     @ResponseBody
-    public String getTableByDB(String dbName,String tbName, String page,
+    public  Map<String, Object> getTableByDB(String dbName,String tbName, String page,
                                  String rows, String sort, String order) throws SQLException {
         Map<String, Object> map = null;
         Connection conn = null ;
@@ -92,12 +93,12 @@ public class TbController  {
                 conn.close();
             }
         }
-        return StringUtils.MapToString(map);
+       return map;
     }
 
     @RequestMapping("/mergeData")
     @ResponseBody
-    public String mergeData(String dbName, String tbCollection) throws Exception {
+    public Map<String,Object> mergeData(String dbName, String tbCollection) throws Exception {
         Connection masterConn = null ;//主库连接
         Connection slaverConn = null;//从库连接
         List<Map<String, Object>> list = null;
@@ -105,7 +106,7 @@ public class TbController  {
         Map<String,Object> resu =new HashMap<>();
         String tbName = null;
         Map<String, String> resultMap = null;
-        Map<String ,String> insertMessageMap = null;
+        Map<String ,Object> insertMessageMap = null;
         try{
             masterConn = DataSourceHelper.GetConnection(masterDataSource);
             slaverConn = DataSourceHelper.GetConnection(dbName);
@@ -130,8 +131,8 @@ public class TbController  {
                 }else{
                     insertMessageMap = largeTbService. mergeData( count, tbName, dbName);
                 }*/
-                resultMap.put("INSERT_COUNT",insertMessageMap.get("INSERT_COUNT") );
-                resultMap.put("MESSAGE",insertMessageMap.get("MESSAGE") );
+                resultMap.put("INSERT_COUNT",insertMessageMap.get("INSERT_COUNT")+"" );
+                resultMap.put("MESSAGE",insertMessageMap.get("MESSAGE")+"" );
                 result.add(resultMap);
                 k++;
                 if (k %50 == 0 || insertCountRecord >18000 ){//循环50次就关一次连接再重新获取、、
@@ -154,7 +155,7 @@ public class TbController  {
             closeConn(masterConn,slaverConn);//关闭所有数据源
         }
 
-        return StringUtils.MapToString(resu);
+        return resu;
     }
 
     private void closeConn(Connection masterConn, Connection slaverConn) {
@@ -185,7 +186,7 @@ public class TbController  {
 
     @RequestMapping("/updateUser")
     @ResponseBody
-    public String updateUser(String dbName, String tbCollection) throws Exception {
+    public Map<String,Object> updateUser(String dbName, String tbCollection) throws Exception {
         Connection masterConn = null ;//主库连接
         Connection slaverConn = null;//从库连接
         int groupSiz = 0; //每张表数据插入多次 一次插入的数据条数
@@ -228,22 +229,21 @@ public class TbController  {
             }
         }
 
-        return StringUtils.MapToString(resu);
+        return resu;
 
 
     }
 
     @RequestMapping("/getTableStruct")
     @ResponseBody
-    public String getTableStruct(String dbName,String tbName, String page,
-                               String rows, String sort, String order) throws SQLException {
+    public Map<String,Object>  getTableStruct(String dbName,String tbName) throws SQLException {
         List<Map<String, Object>> list= null;
         Map<String,Object> map =new HashMap<>();
         Connection conn = null ;
         try {
             if (null== dbName || dbName.trim().equals("")) dbName =masterDataSource;
             conn = DataSourceHelper.GetConnection(dbName);
-            list = tbService.getTableStruct(dbName,tbName, page, rows, sort, order,conn);
+            list = tbService.getTableStruct(dbName,tbName,conn);
             map.put("list",list);
         } catch (Exception e) {
             map.put("err", true);
@@ -253,12 +253,12 @@ public class TbController  {
                 conn.close();
             }
         }
-        return StringUtils.MapToString(map);
+        return map;
     }
 
     @RequestMapping("/editTableStruct")
     @ResponseBody
-    public String editTableStruct(String dbName,String tbName,String content) throws SQLException {
+    public Map<String,Object> editTableStruct(String dbName,String tbName,String content) throws SQLException {
         List<Map<String, Object>> list= null;
         Map<String,Object> map =new HashMap<>();
         Connection conn = null ;
@@ -279,7 +279,7 @@ public class TbController  {
                 conn.close();
             }
         }
-        return StringUtils.MapToString(map);
+        return map;
     }
 
 

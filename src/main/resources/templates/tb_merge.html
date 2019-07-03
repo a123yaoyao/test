@@ -51,6 +51,20 @@ textField:'text',onChange:uie_dgd_search" id="db">
 
 
 
+<div class="am-popup" id="errMsg">
+    <div class="am-popup-inner">
+        <div class="am-popup-hd">
+            <h4 class="am-popup-title">错误信息详情</h4>
+            <span data-am-modal-close
+                  class="am-close">&times;</span>
+        </div>
+        <div class="am-popup-bd" id="errMsgDiv">
+
+        </div>
+    </div>
+</div>
+
+
 
 
 
@@ -141,14 +155,26 @@ textField:'text',onChange:uie_dgd_search" id="db">
 
                 var html ='<table class="am-table"><thead> <tr><th>序号</th><th>表名</th><th>同步条数</th> <th>信息</th></tr></thead>';
                 for(var i=0;i<list.length;i++){
-                    html +='<tr><td>'+(i+1)+'</td><td>'+list[i].TABLE_NAME+'</td><td>'+list[i].INSERT_COUNT+'条</td><td>'+list[i].MESSAGE+'</td></tr>';
+                    var msg = list[i].MESSAGE.split("@_@");
+                    if (msg.length==1){
+                        html +='<tr><td>'+(i+1)+'</td><td>'+list[i].TABLE_NAME+'</td><td>'+list[i].INSERT_COUNT+'条</td><td>'+list[i].MESSAGE+'</td></tr>';
+                    }else{
+                        html +='<tr><td>'+(i+1)+'</td><td>'+list[i].TABLE_NAME+'</td><td>'+list[i].INSERT_COUNT+'条</td><td><button class=" but" style="width: 150px;" onclick="openDialog()">查看详情</button></td></tr>';
+                        var errMsgHtml = '<table class="am-table"><thead> <tr><th>信息</th></tr></thead>' ;
+                        for (let j = 0; j <msg.length ; j++) {
+                            errMsgHtml += '<tr><td>'+msg[i]+'</td></tr>' ;
+                        }
+                        errMsgHtml +="</table>" ;
+                        $('#errMsgDiv').html('');
+                        $('#errMsgDiv').append(errMsgHtml);
+                    }
+
                 }
-                html +="</table>"
+                html +="</table>";
                 $('#return_message').html('');
                 $('#return_message').append(html);
                 $('#your-modal').modal({
                     relatedTarget: this
-
                 });
             },
             error:function(data){
@@ -157,6 +183,12 @@ textField:'text',onChange:uie_dgd_search" id="db">
             }
         });
 
+    }
+    
+    function openDialog() {
+        $('#errMsg').modal({
+            relatedTarget: this
+        });
     }
 
     var dbs ;

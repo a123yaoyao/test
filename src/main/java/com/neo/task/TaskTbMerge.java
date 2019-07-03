@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @Date: 2019/6/26/026 17:21
  * @Description:
  */
-public class TaskTbMerge  implements Callable<Map<String,String>> {
+public class TaskTbMerge  implements Callable<Map<String,Object>> {
     /**
      * 日志对象
      */
@@ -74,13 +74,11 @@ public class TaskTbMerge  implements Callable<Map<String,String>> {
      * @throws Exception if unable to compute a result
      */
     @Override
-    public   Map<String,String> call() throws Exception {
+    public   Map<String,Object> call() throws Exception {
         int len = 0;
-        Map<String,String> resultMap = new HashMap<>();
-        resultMap.put("INSERT_COUNT","0");
-        Map<String,String> returnMap = null;
+        Map<String,Object> resultMap = new HashMap<>();
+        Map<String,Object> returnMap = null;
         try{
-
             String  querySql = SqlTools.queryDataPager(tbName,startIndex,maxIndex);
             List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
             returnMap =new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStruct);

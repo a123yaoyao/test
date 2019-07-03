@@ -352,9 +352,9 @@ public class JDBCUtil {
 
     }
 
-    public  Map<String,String>   batchInsertJsonArry(String tbName, List<Map<String, Object>> newData, List<Map<String, Object>> tbstruct) throws Exception{
+    public  Map<String,Object>   batchInsertJsonArry(String tbName, List<Map<String, Object>> newData, List<Map<String, Object>> tbstruct) throws Exception{
         long start = System.currentTimeMillis();
-        Map<String,String> returnMap =new HashMap<>();
+        Map<String,Object> returnMap =new HashMap<>();
         String  sql= null;
         int result= 0;
         PreparedStatement pst = null;
@@ -362,24 +362,13 @@ public class JDBCUtil {
             sql =  getInsertSql( tbName,  newData);
             conn.setAutoCommit(false);
             pst = conn.prepareStatement(sql);
-            result =    insertBatch1(tbName , newData, pst,tbstruct);
+            returnMap  =    insertBatch1(tbName , newData, pst,tbstruct);
             long end = System.currentTimeMillis();
             logger.info(tbName+"表批量插入了:"+result+"条数据 需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
-            returnMap.put("INSERT_COUNT",result+"");
-            returnMap.put("MESSAGE","执行成功");
             return returnMap;
         } catch (Exception e) {
             logger.error(e.getMessage());
             logger.error("sql :"+sql);
-            returnMap.put("INSERT_COUNT","0");
-            returnMap.put("MESSAGE",e.getMessage());
-         /*   if (e.getMessage().contains("ORA-00001")){
-                System.out.println("开始单条插入......................................................................................");
-                return odinaryInsert(tbName,newData,tbstruct);
-            }else{
-
-            }*/
-
         }finally {
             newData =null;
             closeAll();
@@ -389,26 +378,21 @@ public class JDBCUtil {
     }
 
 
-    public  Map<String,String>   batchInsertJsonArry1(String tbName, List<Map<String, Object>> newData, List<Map<String, Object>> tbstruct) throws Exception{
+    public  Map<String,Object>   batchInsertJsonArry1(String tbName, List<Map<String, Object>> newData, List<Map<String, Object>> tbstruct) throws Exception{
         long start = System.currentTimeMillis();
-        Map<String,String> returnMap =new HashMap<>();
+        Map<String,Object> returnMap =new HashMap<>();
         String  sql= null;
         try {
             sql =  getInsertSql( tbName,  newData);
             conn.setAutoCommit(false);
             pst = conn.prepareStatement(sql);
-            int result =    insertBatch1(tbName , newData, pst,tbstruct);
+            returnMap =    insertBatch1(tbName , newData, pst,tbstruct);
             long end = System.currentTimeMillis();
-            logger.info(tbName+"表批量插入了:"+result+"条数据 需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
-
-            returnMap.put("INSERT_COUNT",result+"");
-            returnMap.put("MESSAGE","执行成功");
+            logger.info(tbName+"表批量插入了:"+returnMap.get("INSERT_COUNT")+"条数据 需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
             newData =null;
             return returnMap;
         } catch (Exception e) {
             logger.error(sql.toString()+e.getMessage());
-            returnMap.put("INSERT_COUNT","0");
-            returnMap.put("MESSAGE",e.getMessage());
              }finally {
             closeAll();
         }
@@ -639,25 +623,21 @@ public class JDBCUtil {
     }
 
 
-    private int insertBatch1(String tbName, List<Map<String, Object>> dat,PreparedStatement pst,List<Map<String, Object>> tbstruct) throws SQLException, IOException {
-        int[] ik = null;
-        int returnLen=0;
-        int affectRows =0 ;
+    private Map<String,Object> insertBatch1(String tbName, List<Map<String, Object>> dat,PreparedStatement pst,List<Map<String, Object>> tbstruct) throws SQLException, IOException {
+        /*******************************变量说明*********************************************************************/
+        Map<String,Object> returnMap =new HashMap<>();//返回信息
+        String errMsg = "" ;//错误信息
+        int affectRows =0 ; //数据插入条数
         conn.setAutoCommit(false);
-        Map<String, Object> m = (Map<String, Object>) dat.get(0);
-        String value = null;
         Map<String, Object> ma = null;
-        String cloumnName = null;
-        String dataType = null;
-        java.sql.Date dateValue = null;
+        String dataType = null;//字段类型
         java.sql.Timestamp timestampValue = null;
-        boolean flag;
         Map<String, String> structureMap = new LinkedHashMap<>();
-        for (Map<String, Object> structure : tbstruct) { //表 字段名和字段类型映射
-            cloumnName = structure.get("COLUMN_NAME") + "";
-            dataType = structure.get("DATA_TYPE") + "";
-            structureMap.put(cloumnName, dataType);
+        /******************************* 字段名和字段类型映射*********************************************************************/
+        for (Map<String, Object> structure : tbstruct) {
+            structureMap.put(structure.get("COLUMN_NAME") + "", structure.get("DATA_TYPE") + "");
         }
+        /******************************* 字段值和参数位置的映射*********************************************************************/
         Map<String, Integer> nameIndexMapper = new LinkedHashMap<>();
         Map<String, Object> insertMap = (Map<String, Object>) dat.get(0);
         int mapperFlag =0;
@@ -665,7 +645,9 @@ public class JDBCUtil {
             mapperFlag++;
             nameIndexMapper.put(col,mapperFlag);
         }
+        /******************************* 数据插入*********************************************************************/
         try {
+
             for (int i = 0; i < dat.size(); i++) {
                 ma = (Map<String, Object>) dat.get(i);
                 int j = 0;
@@ -695,23 +677,27 @@ public class JDBCUtil {
                 pst.addBatch();
 
                 if (i > 0 && i % 1000 == 0) {
-                    returnLen  += pst.executeBatch().length;
+                    affectRows  += pst.executeBatch().length;
                     conn.commit();
                     //清除批处理命令
                     pst.clearBatch();
                     //如果不想出错后，完全没保留数据，则可以每执行一次提交一次，但得保证数据不会重复
                 }
             }
-            returnLen  += pst.executeBatch().length;
+            affectRows  += pst.executeBatch().length;
             conn.commit();
             pst.clearBatch();
-           // logger.info("************************影响的行数"+ik.length);
-            return returnLen;
+            returnMap.put("INSERT_COUNT",affectRows);
+            returnMap.put("MESSAGE","执行成功");
+            dat = null ;
+            return returnMap;
         }catch (Exception e){
-            logger.error("JDBCUtil 729行："+e.getMessage()+" ");
+            logger.error("JDBCUtil 711行："+e.getMessage()+" ");
             logger.info("************************单条插入************************");
             conn.rollback();
             conn.setAutoCommit(false);
+            String errMessage ="";
+            /*******************循环列表 一条一条插入数据 ********************************/
             for (int i = 0; i < dat.size(); i++) {
                 ma = (Map<String, Object>) dat.get(i);
                 int j = 0;
@@ -748,12 +734,27 @@ public class JDBCUtil {
                         }
                     }
                 }
-                logger.info("affectRows:"+affectRows +" EAF_ID "+ma.get("EAF_ID"));
-                affectRows += pst.executeUpdate();
-                conn.commit();
 
+                try{
+                    affectRows += pst.executeUpdate();
+                    conn.commit();
+                }catch (Exception e1){
+                    if (structureMap.containsKey("EAF_ID")){
+                        logger.info("affectRows:"+affectRows +" EAF_ID "+ma.get("EAF_ID") );
+                    }else{
+                        for (String colm:structureMap.keySet()) {
+                            errMsg += colm +" 值为："+ma.get(colm)+" ";
+                        }
+                    }
+                    errMessage += errMsg+e1.getMessage()+"@_@";
+                    returnMap.put("MESSAGE",errMessage);
+                    returnMap.put("INSERT_COUNT",affectRows);
+                    conn.rollback();
+                    continue;//执行下一次更新
+                }
             }
-           return affectRows;
+            dat = null;
+           return returnMap;
 
         }
 
@@ -970,4 +971,5 @@ public class JDBCUtil {
         }
         return 0;
     }
+
 }

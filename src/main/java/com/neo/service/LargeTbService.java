@@ -70,9 +70,9 @@ public class LargeTbService{
      * @return
      * @throws Exception
      */
-    public  Map<String ,String> mergeData(int dataNums,String tbName,String dbName) throws Exception {
+    public  Map<String ,Object> mergeData(int dataNums,String tbName,String dbName) throws Exception {
         long startTime =System.currentTimeMillis();//合并数据开始时间
-        Map<String,String> returnMap =new HashMap<>();
+        Map<String,Object> returnMap =new HashMap<>();
         returnMap.put("INSERT_COUNT","0");
         returnMap.put("MESSAGE","执行成功");
         //获得线程数量
@@ -96,26 +96,21 @@ public class LargeTbService{
      * @return
      * @throws Exception
      */
-    private Map<String,String>  insertTbData(int threads,String dbName,String tbName,int dataCount) throws Exception {
+    private Map<String,Object>  insertTbData(int threads,String dbName,String tbName,int dataCount) throws Exception {
         List<Map<String,Object>> masterTbStructor = selectTableStructureByDbAndTb(tbName,  dbName);
-        Map<String,String> returnMap =new HashMap<>();
-        returnMap.put("INSERT_COUNT","0");
-        returnMap.put("MESSAGE","执行成功");
+        Map<String,Object> returnMap =new HashMap<>();
+
         int insertCount =0 ;
-        //threads=1;//测试
         if (threads==1){
             String sql ="select * from "+tbName;
             List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(sql,new Object[][]{});
-            //List<Map<String,Object>> masterTbStructor = selectTableStructureByDbAndTb(tbName,  dbName);
-            returnMap = //new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStructor);
-                    new JDBCUtil(masterDataSource).batchInsertJsonArry1(tbName,list,masterTbStructor);
+            returnMap =   new JDBCUtil(masterDataSource).batchInsertJsonArry1(tbName,list,masterTbStructor);
         }else{
             int groupSize =getGroupSize(dataCount);
-            final BlockingQueue<Future<Map<String,String>>> queue = new LinkedBlockingQueue<>();
+            final BlockingQueue<Future<Map<String,Object>>> queue = new LinkedBlockingQueue<>();
             final BlockingQueue<Future<Integer>> queue1 = new LinkedBlockingQueue<>();
             final CountDownLatch  endLock = new CountDownLatch(threads); //结束门
             final ExecutorService exec = Executors.newFixedThreadPool(threads);//最大并发
-           // final ExecutorService exec = Executors.newSingleThreadScheduledExecutor();
             Map<Integer, List<Map<String,Object>>> map =new LinkedHashMap<>();
             for (int i = 0; i <threads ; i++) {
                 int startIndex = i * groupSize;
@@ -124,22 +119,10 @@ public class LargeTbService{
                     maxIndex =dataCount;
                 }
                 String  querySql = SqlTools.queryDataPager(tbName,startIndex,maxIndex);//先查询 再删除
-
                 List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
-               // map.put(i,list);
-
                 batchDelete(list,tbName);
-               // Future<Integer> future = exec.submit(new TaskTbDelete(i, groupSize,masterDataSource,dbName,tbName,endLock,startIndex,maxIndex,uniqueConstraint,map.get(i),masterTbStructor));
-               // queue1.add(future);
                 list =null;
             }
-           /*      int x =0;
-            for(Future<Integer> future : queue1){
-                x +=  future.get();
-            } ;
-            exec.shutdown(); //关闭线程池
-
-            System.gc();*/
 
 
 
@@ -151,12 +134,12 @@ public class LargeTbService{
                 }
                 //Future<Map<String,String>> future = exec.submit(new TaskTbMerge(i, groupSize,masterDataSource,dbName,tbName,endLock,startIndex,maxIndex,uniqueConstraint));
 
-                Future<Map<String,String>> future = exec.submit(new TaskTbMerge(i, groupSize,masterDataSource,dbName,tbName,endLock,startIndex,maxIndex,uniqueConstraint,map.get(i),masterTbStructor));
+                Future<Map<String,Object>> future = exec.submit(new TaskTbMerge(i, groupSize,masterDataSource,dbName,tbName,endLock,startIndex,maxIndex,uniqueConstraint,map.get(i),masterTbStructor));
                 queue.add(future);
             }
             endLock.await(); //主线程阻塞，直到所有线程执行完成
-            for(Future<Map<String,String>> future : queue){
-                insertCount +=  Integer.valueOf(future.get().get("INSERT_COUNT"));
+            for(Future<Map<String,Object>> future : queue){
+                insertCount +=  Integer.valueOf(future.get().get("INSERT_COUNT")+"");
             } ;
             exec.shutdown(); //关闭线程池
             returnMap.put("INSERT_COUNT",insertCount+"");
