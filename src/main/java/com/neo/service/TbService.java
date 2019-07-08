@@ -710,7 +710,7 @@ public class TbService {
     private String getQueryUserIdMapperSql(String column,String tbName) {
         String querySql ="-- 查询当前业务表中人员关联结果为空的eaf_id 也就是现在的eaf_id\n" +
                 "with tmp as (" +
-                "select distinct t.BIM_HANDLER from "+tbName+" t where t."+column+" not in (select distinct eaf_id from eaf_acm_user)\n" +
+                "select distinct t."+column+" from "+tbName+" t where t."+column+" not in (select distinct eaf_id from eaf_acm_user)\n" +
                 "),\n" +
                 "\n" +
                 "--找出这些eaf_id 在记录表中对应的 人员登录名\n" +

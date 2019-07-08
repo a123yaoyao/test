@@ -511,6 +511,10 @@ public class DbUtil {
      * @throws Exception
      */
     public int batchDelete(List<Map<String, Object>> data, List<Map<String, Object>> uniqueList, String tbName) throws Exception {
+
+        if (tbName.equals("EAF_ACM_R_USERORG")){
+            return  specialDelete( data,  uniqueList,  tbName);
+        }
         int len =0;
 
         try{
@@ -577,6 +581,23 @@ public class DbUtil {
            logger.info("删除"+tbName +"表 "+len+"条数据成功！");
             return len;
         }
+    }
+
+    private int specialDelete(List<Map<String,Object>> data, List<Map<String,Object>> uniqueList, String tbName) throws SQLException {
+        String sql=null;
+        if (tbName.equals("EAF_ACM_R_USERORG")){
+             sql =" delete from EAF_ACM_R_USERORG where eaf_id = ? ";
+        }
+        pst = conn.prepareStatement(sql);
+        List<String> columnNames;
+        for (Map<String, Object> map : data) {
+            pst.setObject(1, map.get("EAF_ID") + "");
+            pst.addBatch();
+        }
+        int[] result = pst.executeBatch();
+        conn.commit();
+        pst.clearBatch();
+        return result.length;
     }
 
     //删除部分数据获得影响的行数 不使用addBatch

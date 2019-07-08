@@ -106,6 +106,8 @@ public class TaskTbMerge  implements Callable<Map<String,Object>> {
                 logger.info(maxIndex2);
                 int cycleLenth =  IntMath.mod(nums,newSize) ==0 ? IntMath.divide(nums, newSize, RoundingMode.DOWN)
                         : IntMath.checkedAdd(IntMath.divide(nums, newSize, RoundingMode.DOWN), 1);
+                String count1= "";
+                String count2= "";
                 for (int i = 0; i <cycleLenth ; i++) {
                     int start1 = IntMath.checkedAdd(startIndex, IntMath.checkedMultiply(i,newSize));
                     int end1 =0;
@@ -128,7 +130,9 @@ public class TaskTbMerge  implements Callable<Map<String,Object>> {
                     List<Map<String, Object>> masterTbStruct = selectTableStructureByDbAndTb();
                     //插入数据
                     returnMap = new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStruct);
-                    resultMap.put("INSERT_COUNT",IntMath.checkedAdd(Integer.valueOf(resultMap.get("INSERT_COUNT")+""), Integer.valueOf(returnMap.get("INSERT_COUNT")+""))+"" );
+                     count1= resultMap.get("INSERT_COUNT")==null?"0":resultMap.get("INSERT_COUNT")+"";
+                     count2= returnMap.get("INSERT_COUNT")==null?"0":returnMap.get("INSERT_COUNT")+"";
+                    resultMap.put("INSERT_COUNT",IntMath.checkedAdd(Integer.valueOf(count1), Integer.valueOf(count2) ));
                 }
 
             }
