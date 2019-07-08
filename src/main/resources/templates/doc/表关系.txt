@@ -1,0 +1,2 @@
+EAF_ACM_ORG 和 EAF_ACM_R_ORGORG 组织表的关联关系
+EAF_ACM_USER 和 EAF_ACM_R_USERORG 用户表 和用户组织表的关系

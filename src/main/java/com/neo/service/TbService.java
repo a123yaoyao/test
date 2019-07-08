@@ -1,14 +1,15 @@
 package com.neo.service;
 
-import ch.qos.logback.core.db.dialect.DBUtil;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 
-import com.neo.model.DTO.TbDealDTO;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.neo.model.bo.TbDealBO;
 import com.neo.util.CollectionUtil;
 import com.neo.util.DataSourceHelper;
 import com.neo.util.DbUtil;
-import com.sun.xml.internal.bind.v2.TODO;
+import com.neo.util.JDBCUtil;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -349,8 +350,8 @@ public class TbService {
 
 
         // 对表数据进行特殊业务处理
-        TbDealDTO tbDealDTO =new TbDealDTO( tbName,masterDataSource, addColumns);
-        tbDealDTO.dealWithTbProblem();
+        TbDealBO tbDealBO =new TbDealBO( tbName,masterDataSource, addColumns);
+        tbDealBO.dealWithTbProblem();
         //将从库
         return returnMap;
     }
@@ -743,9 +744,27 @@ public class TbService {
         System.out.println(querySql);
     }
 
-    public List<Map<String, Object>> getTableStruct(String dbName, String tbName, String page, String rows, String sort, String order, Connection conn) throws SQLException {
+    public List<Map<String, Object>> getTableStruct(String dbName, String tbName, Connection conn) throws SQLException {
         DbUtil salverDbUtil =new DbUtil(conn);
         List<Map<String, Object>> tb = selectTableStructureByDbAndTb( tbName,salverDbUtil);
         return tb;
+    }
+
+    public Map<String,Object> editTableStruct(String dbName, String tbName, JsonObject jo , Connection conn) {
+       Map<String,Object> returnMap = new HashMap<>();
+
+        Gson googleJson = new Gson();
+        Map<String,Object> map =  googleJson.fromJson(jo, HashMap.class);
+        String sql = "alter table "+tbName+" modify "+map.get("COLUMN_NAME")+" "+map.get("DATA_TYPE")+"("+map.get("DATA_LENGTH")+")";
+        try{
+            int i =new JDBCUtil(dbName).executeUpdate(sql) ;
+            returnMap.put("code","200");
+        }catch (Exception e){
+            System.out.println(e.getMessage());
+            returnMap.put("err",true);
+            returnMap.put("content",e.getMessage());
+        }
+
+         return returnMap;
     }
 }

@@ -72,14 +72,22 @@ public class TaskTbDelete implements Callable<Integer> {
      */
     @Override
     public Integer call() throws Exception {
+        try{
+            String  querySql = SqlTools.queryDataPager(tbName,startIndex,maxIndex);
+            List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
+            int i= batchDelete(list);
+            list =null;
+            System.gc();
+            return i;
+        }
+        catch (Exception e){
+            e.printStackTrace();
+            logger.error(e.getMessage());
+        }finally {
+            endLock.countDown();//计时器减1
 
-        String  querySql = SqlTools.queryDataPager(tbName,startIndex,maxIndex);
-        List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
-        int i= batchDelete(list);
-        list =null;
-        System.gc();
-        return i;
-
+        }
+        return 0;
 
     }
 

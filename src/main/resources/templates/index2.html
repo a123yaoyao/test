@@ -15,7 +15,10 @@
 </style>
 <div id="app">
 
+
+
     <template>
+
 
 
             <el-row :gutter="20" style="padding: 20px;">
@@ -82,18 +85,44 @@
         </el-table>
     </el-dialog>
 
-    <el-dialog title="表信息" :visible.sync="dialogTableStructVisible"  height="450" >
+    <el-dialog title="表信息" :visible.sync="dialogTableStructVisible"  height="450" width="60%"  lock-scroll="true">
         <el-table :data="tableStructData" border :header-cell-style="{
     'background-color': '#fafafa',
     'color': 'rgb(103, 194, 58)',
     'border-bottom': '1px rgb(103, 194, 58) solid',
     'border-top': '1px rgb(103, 194, 58) solid'
-}">
+}" class="tb-edit" highlight-current-row >
             <el-table-column type="index" label="序号" width="150"></el-table-column>
-            <el-table-column property="COLUMN_NAME" label="字段名称" width="200"></el-table-column>
+            <el-table-column property="COLUMN_NAME" label="字段名称" width="200">
+
+            </el-table-column>
             <el-table-column property="DATA_TYPE" label="字段类型"></el-table-column>
-            <el-table-column property="DATA_LENGTH" label="字段长度"></el-table-column>
+            <el-table-column property="DATA_LENGTH" label="字段长度">
+                <template scope="scope">
+                    <span v-if="scope.row.isSet">
+                    <el-input size="small" v-model="scope.row.DATA_LENGTH" placeholder="请输入内容" @change="editTableStruct(scope.$index, scope.row)"></el-input>
+                    </span>
+                    <span v-else> {{scope.row.DATA_LENGTH}}</span>
+                </template>
+            </el-table-column>
             <el-table-column property="NULLABLE" :formatter="statusFormatter" label="是否为空"></el-table-column>
+            <el-table-column
+                    label="操作" align="center">
+
+                <template slot-scope="scope">
+                    <span v-if="scope.row.isSet">
+                    <el-button
+                            size="mini"
+                            @click="saveTableStruct(scope.$index, scope.row)">保存</el-button>
+                    </span>
+                    <span  v-else>
+                    <el-button
+                            size="mini"
+                            @click="editTableStruct(scope.$index, scope.row)">编辑</el-button>
+                    </span>
+                </template>
+
+            </el-table-column>
         </el-table>
     </el-dialog>
 
@@ -116,6 +145,11 @@
             handleSelectionChange(val) {
                 this.multipleSelection = val;
             },
+            handleCurrentChange(row, event, column) {
+                console.log(row, event, column, event.currentTarget);
+                row.isSet = "1";
+            },
+
             handleEdit(index, row) {
                 $.ajax({
                     url:'../getTableStruct',
@@ -126,13 +160,63 @@
                         "tbName":row.TABLE_NAME,
                     },
                     success:function(data){
+                       var content = data.list;
+                        for (let i = 0; i <content.length ; i++) {
+                            content[i].isSet = null;
+                        }
                         vue.tableStructData =data.list;
                         vue.dialogTableStructVisible =true;
+                        vue.tbName =row.TABLE_NAME;
                     },
                     error:function(data){
 
                     }
                 });
+            },
+            editTableStruct( inedx,row){
+                row.isSet = "1";
+            },
+            saveTableStruct( inedx, row){
+                row.isSet = null ;
+                var obj ={};
+                obj.content = row;
+                $.ajax({
+                    url:'../editTableStruct',
+                    type: 'POST',
+                    dataType:'json',
+                    data:{
+                        "dbName":this.dbSelected,
+                        "tbName":vue.tbName,
+                        "content" :JSON.stringify(row)
+                    },
+                    success:function(data){
+                      if (data.code=='200'){
+                          vue.$message({
+                              showClose: true,
+                              message: '修改字段成功！'
+                          });
+                      }
+                      if(data.err){
+                          vue.$message({
+                              showClose: true,
+                              message:data.content,
+                              type: 'error'
+                          });
+                      }
+                    },
+                    error:function(data){
+                        vue.$message({
+                            showClose: true,
+                            message:'网络错误',
+                            type: 'error'
+                        });
+                    }
+                });
+            }
+            ,
+            handleSave:function(row){
+                //保存数据，向后台取数据
+                alert(2);
             },
             // 类型格式化
             statusFormatter(row, column) {
@@ -147,7 +231,10 @@
          data:{  pagination :{},
                 tbName : "",
                  loading :false,
+                 editFlag :true,
                 dbs:[],
+                tbName:'',
+                 inputColumn1:'',
                 dialogTableStructVisible :false,
                 tableStructData :[],
                 mergeData:[],

@@ -1,4 +1,4 @@
-package com.neo.model.DTO;
+package com.neo.model.bo;
 
 import com.neo.util.DbUtil;
 import com.neo.util.JDBCUtil;
@@ -7,13 +7,13 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
-public class TbDealDTO {
+public class TbDealBO {
 
     String tbName;
     String masterDataSource;
     String addColumns;
 
-    public TbDealDTO(String tbName, String masterDataSource,String addColumns) {
+    public TbDealBO(String tbName, String masterDataSource,String addColumns) {
         this.tbName = tbName;
         this.masterDataSource = masterDataSource;
         this.addColumns = addColumns;
