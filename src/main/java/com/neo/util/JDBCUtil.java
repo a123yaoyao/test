@@ -816,7 +816,7 @@ public class JDBCUtil {
                 }
                 if (!isNeedDel) return 0;
                 for (String columnName:  columnNames) {
-                    sql += " and " + columnName + " =  ? ";
+                    sql += " and " + columnName+" is not null and "+columnName + " =  ? ";
                 }
 
                 pst = conn.prepareStatement(sql);
@@ -838,7 +838,7 @@ public class JDBCUtil {
                 String[] arr = new String[uniqueList.size()];
                 for (Map<String, Object> uniqueMap : uniqueList) {
                     columnName = uniqueMap.get("COLUMN_NAME") + "";
-                    sql += " and " + columnName + " =  ? ";
+                    sql += " and " + columnName+" is not null and "+columnName + " =  ? ";
                     arr[k] = columnName;
                     k++;
                 }

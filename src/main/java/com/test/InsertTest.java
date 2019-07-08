@@ -51,8 +51,21 @@ public class InsertTest {
     }
 
     public static void main(String[] args) throws SQLException {
+            long start =System.currentTimeMillis();
+        Connection connection = getSlaverConnect();
+        PreparedStatement pst =connection.prepareStatement(" select * from BIM_MOD_R_INS_R ");
+      ResultSet set =  pst.executeQuery();
+        long end =System.currentTimeMillis();
+while (set.next()){
+    System.out.println(set.getObject(1));
+}
+        System.out.println( end-start );
+        System.out.println("success");
+        connection.close();
 
-        insertTest();
+
+
+      //  insertTest();
 
      /*   int nums = 12612;
         int newSize = 5000;

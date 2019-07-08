@@ -229,10 +229,10 @@ public class DbUtil {
     }
 */
 
-    private Map<String,String> odinaryInsert(String tbName, List<Map<String,Object>> dat, List<Map<String,Object>> tbstruct) {
+    private Map<String,Object> odinaryInsert(String tbName, List<Map<String,Object>> dat, List<Map<String,Object>> tbstruct) {
         long start = System.currentTimeMillis();
         boolean failureFlag =false;
-        Map<String,String> retrunMap =new HashMap<>();
+        Map<String,Object> retrunMap =new HashMap<>();
         String  sql= sql =  getInsertSql( tbName,  dat);;
         int[] result= null;
         PreparedStatement pst = null;
@@ -314,8 +314,8 @@ public class DbUtil {
 
     }
 
-    public Map<String,String> batchInsertJsonArry(String tbName, List<Map<String, Object>> newData,List<Map<String, Object>> tbstruct) throws Exception{
-        Map<String,String> returnMap =new HashMap<>();
+    public Map<String,Object> batchInsertJsonArry(String tbName, List<Map<String, Object>> newData,List<Map<String, Object>> tbstruct) throws Exception{
+        Map<String,Object> returnMap =new HashMap<>();
         long start = System.currentTimeMillis();
         String  sql= null;
         int[] result= null;
@@ -333,14 +333,17 @@ public class DbUtil {
             newData =null;
             return returnMap;
         } catch (Exception e) {
+            returnMap.put("INSERT_COUNT","0");
+            returnMap.put("MESSAGE",e.getMessage());
+
            logger.error(sql.toString()+e.getMessage());
-           if (e.getMessage().contains("ORA-00001")){
+           /*if (e.getMessage().contains("ORA-00001")){
                System.out.println("开始单条插入......................................................................................");
                return odinaryInsert(tbName,newData,tbstruct);
            }else{
                returnMap.put("INSERT_COUNT","0");
                returnMap.put("MESSAGE",e.getMessage());
-           }
+           }*/
         }
         return returnMap;
     }
@@ -529,7 +532,7 @@ public class DbUtil {
             }
             if (!isNeedDel) return 0;
             for (String columnName:  columnNames) {
-                sql += " and " + columnName + " =  ? ";
+                sql += " and " + columnName+" is not null and "+ columnName + " =  ? ";
             }
 
             pst = conn.prepareStatement(sql);
@@ -551,7 +554,7 @@ public class DbUtil {
             String[] arr = new String[uniqueList.size()];
             for (Map<String, Object> uniqueMap : uniqueList) {
                 columnName = uniqueMap.get("COLUMN_NAME") + "";
-                sql += " and " + columnName + " =  ? ";
+                sql += " and " + columnName+" is not null and "+ columnName + " =  ? ";
                 arr[k] = columnName;
                 k++;
             }

@@ -79,14 +79,13 @@ public class TaskTbMerge  implements Callable<Map<String,Object>> {
         Map<String,Object> resultMap = new HashMap<>();
         Map<String,Object> returnMap = null;
         try{
-            String  querySql = SqlTools.queryDataPager(tbName,startIndex,maxIndex);
+          /*  String  querySql = SqlTools.queryDataPager(tbName,startIndex,maxIndex);
             List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
             returnMap =new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStruct);
             list =null;
             System.gc();
-            return returnMap;
+            return returnMap;*/
 
-/*
 
             //JDBCUtil salver  = new JDBCUtil(dbName);
             //查询从库的数据
@@ -94,7 +93,7 @@ public class TaskTbMerge  implements Callable<Map<String,Object>> {
                 String  querySql = SqlTools.queryDataPager(tbName,startIndex,maxIndex);
                 List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
                 //删除重复的数据
-               // int i= batchDelete(list);
+                 int i= batchDelete(list);
                 //获取当前主库表结构
                 List<Map<String, Object>> masterTbStruct = selectTableStructureByDbAndTb();
                 //插入数据
@@ -124,16 +123,15 @@ public class TaskTbMerge  implements Callable<Map<String,Object>> {
                     //logger.info("list"+list.size());
                     //删除重复的数据
                     //int i=
-                            batchDelete(list);
+                    batchDelete(list);
                     //获取当前主库表结构
                     List<Map<String, Object>> masterTbStruct = selectTableStructureByDbAndTb();
                     //插入数据
                     returnMap = new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStruct);
-                   // resultMap.put("INSERT_COUNT",Integer.valueOf(resultMap.get("INSERT_COUNT"))+ Integer.valueOf(returnMap.get("INSERT_COUNT"))+"" );
-                    resultMap.put("INSERT_COUNT",IntMath.checkedAdd(Integer.valueOf(resultMap.get("INSERT_COUNT")), Integer.valueOf(returnMap.get("INSERT_COUNT")))+"" );
+                    resultMap.put("INSERT_COUNT",IntMath.checkedAdd(Integer.valueOf(resultMap.get("INSERT_COUNT")+""), Integer.valueOf(returnMap.get("INSERT_COUNT")+""))+"" );
                 }
 
-            }*/
+            }
             //long end = System.currentTimeMillis();
             //return resultMap;
         }catch (Exception e){
@@ -184,7 +182,7 @@ public class TaskTbMerge  implements Callable<Map<String,Object>> {
         //获得列表中的唯一键
         List<Map<String, Object>> uniqueList = getUniqueConstriant();
         //批量删除重复数据
-        return new JDBCUtil(masterDataSource).delete(data, uniqueList, tbName);
+        return new JDBCUtil(masterDataSource).batchDelete(data, uniqueList, tbName);
     }
 
     /**

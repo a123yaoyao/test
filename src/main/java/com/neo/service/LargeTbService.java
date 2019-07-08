@@ -118,22 +118,6 @@ public class LargeTbService{
                 if (maxIndex >dataCount){
                     maxIndex =dataCount;
                 }
-                String  querySql = SqlTools.queryDataPager(tbName,startIndex,maxIndex);//先查询 再删除
-                List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
-                batchDelete(list,tbName);
-                list =null;
-            }
-
-
-
-            for (int i = 0; i <threads ; i++) {
-                int startIndex = i * groupSize;
-                int maxIndex = startIndex + groupSize;
-                if (maxIndex >dataCount){
-                    maxIndex =dataCount;
-                }
-                //Future<Map<String,String>> future = exec.submit(new TaskTbMerge(i, groupSize,masterDataSource,dbName,tbName,endLock,startIndex,maxIndex,uniqueConstraint));
-
                 Future<Map<String,Object>> future = exec.submit(new TaskTbMerge(i, groupSize,masterDataSource,dbName,tbName,endLock,startIndex,maxIndex,uniqueConstraint,map.get(i),masterTbStructor));
                 queue.add(future);
             }
@@ -219,8 +203,8 @@ public class LargeTbService{
            String sql = "select  dbms_metadata.get_ddl('TABLE','"+tbName.toUpperCase()+"') TB_SQL from dual";
            //从库查询创建表的sql语句
            sql = new JDBCUtil(dbName).getCreateTableSql(sql,new Object[][]{});
-           String  createSalver =  "CREATE TABLE \""+dbName.toUpperCase()+"\"" +".\""+tbName.toUpperCase() +"\"";
-           String createMaster  =  "CREATE TABLE \""+masterDataSource.toUpperCase()+"\""+".\""+tbName.toUpperCase() +"\"";
+           String  createSalver =  "TABLE \""+dbName.toUpperCase()+"\"" +".\""+tbName.toUpperCase() +"\"";
+           String createMaster  =  "TABLE \""+masterDataSource.toUpperCase()+"\""+".\""+tbName.toUpperCase() +"\"";
            sql = sql.replace(createSalver,createMaster);
            new JDBCUtil(masterDataSource).executeUpdate(sql,new Object[][]{});
        }else{//判断表是否需要新增列或者修改列

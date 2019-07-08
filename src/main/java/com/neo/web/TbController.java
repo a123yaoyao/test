@@ -1,13 +1,11 @@
 package com.neo.web;
 
-import com.alibaba.fastjson.JSONArray;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.neo.model.vo.ServerResponse;
 import com.neo.service.LargeTbService;
-//import com.neo.service.TableService;
+import com.neo.service.TableService;
 import com.neo.service.TbService;
 import com.neo.util.DataSourceHelper;
 import com.neo.util.DbUtil;
@@ -34,6 +32,10 @@ public class TbController  {
 
     @Autowired
     TbService tbService;
+
+    @Autowired
+    TableService tabService;
+
 
     @Autowired
     LargeTbService largeTbService;
@@ -119,18 +121,24 @@ public class TbController  {
             String insertCount ="";
             DbUtil salverDbUtil =new DbUtil(slaverConn);
             for (Map<String, Object> map : list) {
+
                 tbName = map.get("TABLE_NAME") + "";
+               /* int i = specialDealTble(dbName,tbName);
+                if (i==1){
+                    continue;
+                }*/
                 count = salverDbUtil.getCount("select count(*) from "+tbName,new Object[][]{});
                 insertCountRecord += count;//记录 每张表的数据条数的和
                 resultMap = new HashMap();
                 resultMap.put("TABLE_NAME", tbName);
-                insertMessageMap = largeTbService. mergeData( count, tbName, dbName);
+                //insertMessageMap = largeTbService. mergeData( count, tbName, dbName);
+                //insertMessageMap =tbService.mergeData(dbName, tbName, masterDataSource, list, Integer.valueOf(groupSize),masterConn,slaverConn);
 
-               /* if (count<3000){
+                if (count<8000){
                     insertMessageMap =tbService.mergeData(dbName, tbName, masterDataSource, list, Integer.valueOf(groupSize),masterConn,slaverConn);
                 }else{
                     insertMessageMap = largeTbService. mergeData( count, tbName, dbName);
-                }*/
+                }
                 resultMap.put("INSERT_COUNT",insertMessageMap.get("INSERT_COUNT")+"" );
                 resultMap.put("MESSAGE",insertMessageMap.get("MESSAGE")+"" );
                 result.add(resultMap);
@@ -150,12 +158,23 @@ public class TbController  {
         }catch (Exception e){
             resu.put("err",true);
             resu.put("content",e.getMessage());
+            if (e.getMessage().contains("java.lang.OutOfMemoryError")){
+                resu.put("content","内存不足");
+            }
+
             logger.error(e.getMessage());
         }finally {
             closeConn(masterConn,slaverConn);//关闭所有数据源
         }
 
         return resu;
+    }
+
+    private int  specialDealTble(String dbName,String tbName) {
+        if(tbName.equals("EAF_ACM_USER")){
+           return tabService.sepcialDealWith(dbName,tbName);
+        }
+        return 1;
     }
 
     private void closeConn(Connection masterConn, Connection slaverConn) {

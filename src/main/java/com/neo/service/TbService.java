@@ -204,12 +204,14 @@ public class TbService {
      * @throws IOException
      * @throws SQLException
      */
-    public Map<String,String> mergeData(String dbName ,String tbName,String masterDataSource, List<Map<String,Object>> list,int groupSize,
+    public Map<String,Object> mergeData(String dbName ,String tbName,String masterDataSource, List<Map<String,Object>> list,int groupSize,
     Connection masterConn,Connection slaverConn
     ) throws Exception {
-        Map<String,String> returnMap =new HashMap<>();
+        Map<String,Object> returnMap =new HashMap<>();
         returnMap.put("INSERT_COUNT","0");
         returnMap.put("MESSAGE","执行成功");
+
+
 
         DbUtil masterDbUtil =new DbUtil(masterConn);
         DbUtil salverDbUtil =new DbUtil(slaverConn);
@@ -312,22 +314,22 @@ public class TbService {
                 returnMap = masterDbUtil.batchInsertJsonArry(tbName,dat,tb);
             }
         }else{
-            final BlockingQueue<Future<Map<String ,String>>> queue = new LinkedBlockingQueue<>();
+            final BlockingQueue<Future<Map<String ,Object>>> queue = new LinkedBlockingQueue<>();
             final CountDownLatch  endLock = new CountDownLatch(threads); //结束门
             //List<Future<Integer>> results = new ArrayList<Future<Integer>>();
             final ExecutorService exec = Executors.newFixedThreadPool(threads);
             for (List<Map<String, Object>> dat : newData ) {
-                Future<Map<String ,String>> future=   exec.submit(new Callable<Map<String ,String>>(){
+                Future<Map<String ,Object>> future=   exec.submit(new Callable<Map<String ,Object>>(){
                     @Override
-                    public Map<String ,String> call() {
+                    public Map<String ,Object> call() {
                         try {
 
                             insertRecord(masterDbUtil,tbName,dat,dbName);//插入记录
-                            Map<String ,String>  returnMap =  masterDbUtil. batchInsertJsonArry(tbName,dat,tb);
+                            Map<String ,Object>  returnMap =  masterDbUtil. batchInsertJsonArry(tbName,dat,tb);
                             return  returnMap ;
                         }catch(Exception e) {
                             logger.error("数据同步 exception!",e);
-                            Map<String ,String> returnMap =new HashMap<>();
+                            Map<String ,Object> returnMap =new HashMap<>();
                             returnMap.put("INSERT_COUNT","0");
                             returnMap.put("MESSAGE",e.getMessage());
                             return returnMap;
@@ -340,14 +342,13 @@ public class TbService {
                 queue.add(future);
             }
             endLock.await(); //主线程阻塞，直到所有线程执行完成
-            for(Future<Map<String ,String>> future : queue){
+            for(Future<Map<String ,Object>> future : queue){
                 returnMap  =   future.get();
-                insertCount += Integer.valueOf(returnMap.get("INSERT_COUNT"));
+                insertCount += Integer.valueOf(returnMap.get("INSERT_COUNT")+"");
             }
             returnMap.put("INSERT_COUNT",insertCount+"");
             exec.shutdown(); //关闭线程池
         }
-
 
         // 对表数据进行特殊业务处理
         TbDealBO tbDealBO =new TbDealBO( tbName,masterDataSource, addColumns);
