@@ -1,34 +1,57 @@
+<!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <title>商品页面</title>
-    <meta http-equiv="content-type" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <!--css -->
-    <!-- js -->
-    <script src="./lib/js/jquery.min.js" charset="utf-8"></script>
-    <!-- 先引入 Vue -->
-    <script src="./lib/js/vue.js"></script>
-    <script src="./lib/js/vue-router.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/element-ui@2.0.3/lib/theme-chalk/index.css">
-
-
-    <script src="https://unpkg.com/element-ui@2.0.3/lib/index.js"></script>
-
-
-    <!--file，如果上面没有把各模块的js文件整合到file.js文件，则逐个引入-->
-    <script src="lib/js/file.js" type="text/javascript" charset="utf-8"></script>
-    <!-- main.js -->
-    <script src="lib/js/route.js" type="text/javascript" charset="utf-8"></script>
+    <meta charset="UTF-8">
+    <!-- import CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
 </head>
 <body>
-<div id="app" class="container">
-    <router-view></router-view>
+<div id="app">
+    <el-card class="box-card">
+        <div slot="header" class="clearfix">
+            <span>卡片名称</span>
+            <el-button style="float: right; padding: 3px 0" type="text">操作按钮</el-button>
+        </div>
+        <div v-for="o in 4" :key="o" class="text item">
+            {{'列表内容 ' + o }}
+        </div>
+    </el-card>
+
+
 </div>
-<script>
-    var vm = new Vue({ // 实例化vue,挂载路由
-        router,
-    }).$mount('#app');
-</script>
 </body>
+<style>
+    .text {
+        font-size: 14px;
+    }
+
+    .item {
+        margin-bottom: 18px;
+    }
+
+    .clearfix:before,
+    .clearfix:after {
+        display: table;
+        content: "";
+    }
+    .clearfix:after {
+        clear: both
+    }
+
+    .box-card {
+        width: 480px;
+    }
+</style>
+<!-- import Vue before Element -->
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<!-- import JavaScript -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script>
+    new Vue({
+        el: '#app',
+        data: function() {
+            return { visible: false }
+        }
+    })
+</script>
 </html>

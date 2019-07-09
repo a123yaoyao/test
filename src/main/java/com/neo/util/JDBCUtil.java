@@ -786,6 +786,34 @@ public class JDBCUtil {
         return null;
     }
 
+    private int specialDelete(List<Map<String,Object>> data, List<Map<String,Object>> uniqueList, String tbName) throws SQLException {
+        String sql=null;
+        if (tbName.equals("EAF_ACM_R_USERORG")||tbName.equals("EAF_ACM_ORG") ){
+            sql =" delete from "+tbName+" where eaf_id = ? ";
+        }
+
+        pst = conn.prepareStatement(sql);
+
+        int i =0;
+        for (Map<String, Object> map : data) {
+            i++;
+            pst.setObject(1, map.get("EAF_ID") + "");
+            pst.addBatch();
+            if(i>0 && i%1000==0){
+                pst.executeBatch();
+                conn.commit();
+                //清除批处理命令
+                pst.clearBatch();
+                //如果不想出错后，完全没保留数据，则可以每执行一次提交一次，但得保证数据不会重复
+            }
+        }
+        int[] result = pst.executeBatch();
+        conn.commit();
+        pst.clearBatch();
+        return result.length;
+    }
+
+
     /**
      * 批量删除
      * @param data
@@ -796,6 +824,9 @@ public class JDBCUtil {
      */
     public int batchDelete(List<Map<String, Object>> data, List<Map<String, Object>> uniqueList, String tbName) throws Exception {
         long start =System.currentTimeMillis();
+        if (tbName.equals("EAF_ACM_R_USERORG") || tbName.equals("EAF_ACM_ORG")){
+            specialDelete( data,  uniqueList,  tbName);
+        }
         int len =0;
         try{
             String sql = " DELETE  FROM   " + tbName + " where 1=1 ";
@@ -820,17 +851,26 @@ public class JDBCUtil {
                 }
 
                 pst = conn.prepareStatement(sql);
-                int m ;
+                int  m=0;
                 for (Map<String, Object> map : data) {
-                    m=0;
+                    m++;
                     for (String columnName:  columnNames) {
-                        m++;
+
                         pst.setObject(m, map.get(columnName) + "");
                     }
 
                     pst.addBatch();
+                    if(m>0 && m%1000==0){
+                         pst.executeBatch();
+                        conn.commit();
+                        //清除批处理命令
+                        pst.clearBatch();
+                        //如果不想出错后，完全没保留数据，则可以每执行一次提交一次，但得保证数据不会重复
+                    }
                 }
                 result = pst.executeBatch();
+                conn.commit();
+                pst.clearBatch();
             } else if ((uniqueList.size() > 1)) {
                 //sql 预编译
                 String columnName = null;//列名
@@ -844,11 +884,20 @@ public class JDBCUtil {
                 }
                 pst = conn.prepareStatement(sql);
                 //批量处理
+                int m =0;
                 for (Map<String, Object> map : data) {
+                    m++;
                     for (int i = 0; i < arr.length; i++) {
                         pst.setObject(i + 1, map.get(arr[i]) + "");
                     }
                     pst.addBatch();
+                    if(m>0 && m%1000==0){
+                        pst.executeBatch();
+                        conn.commit();
+                        //清除批处理命令
+                        pst.clearBatch();
+                        //如果不想出错后，完全没保留数据，则可以每执行一次提交一次，但得保证数据不会重复
+                    }
                 }
                 result = pst.executeBatch();
             }
