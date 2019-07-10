@@ -51,7 +51,16 @@ public class InsertTest {
     }
 
     public static void main(String[] args) throws SQLException {
-            long start =System.currentTimeMillis();
+        Connection connection = getMasterConnect();
+        String sql =" insert into EAF_TEST(EAF_NAME)  values( ?) ";
+        PreparedStatement pst  = connection.prepareStatement(sql);
+        pst.setObject(1,"1");
+        pst.executeUpdate();
+        connection.commit();
+        pst.close();
+        connection.close();
+
+ /*           long start =System.currentTimeMillis();
         Connection connection = getSlaverConnect();
         PreparedStatement pst =connection.prepareStatement(" select * from BIM_MOD_R_INS_R ");
       ResultSet set =  pst.executeQuery();
@@ -61,7 +70,7 @@ while (set.next()){
 }
         System.out.println( end-start );
         System.out.println("success");
-        connection.close();
+        connection.close();*/
 
 
 

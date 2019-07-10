@@ -7,51 +7,79 @@
 </head>
 <body>
 <div id="app">
-    <el-card class="box-card">
-        <div slot="header" class="clearfix">
-            <span>卡片名称</span>
-            <el-button style="float: right; padding: 3px 0" type="text">操作按钮</el-button>
-        </div>
-        <div v-for="o in 4" :key="o" class="text item">
-            {{'列表内容 ' + o }}
-        </div>
-    </el-card>
+    <el-steps :active="active" finish-status="success">
+        <el-step title="更新表中的用户"></el-step>
+        <el-step title="更新表中的组织"></el-step>
+        <el-step title="更新表中项目"></el-step>
+    </el-steps>
+
+    <el-button style="margin-top: 12px;" @click="next">下一步</el-button>
 
 
 </div>
 </body>
-<style>
-    .text {
-        font-size: 14px;
-    }
-
-    .item {
-        margin-bottom: 18px;
-    }
-
-    .clearfix:before,
-    .clearfix:after {
-        display: table;
-        content: "";
-    }
-    .clearfix:after {
-        clear: both
-    }
-
-    .box-card {
-        width: 480px;
-    }
-</style>
+<script type="text/javascript" src="../jquery-easyui-1.7.0/jquery.min.js"></script>
 <!-- import Vue before Element -->
 <script src="https://unpkg.com/vue/dist/vue.js"></script>
 <!-- import JavaScript -->
 <script src="https://unpkg.com/element-ui/lib/index.js"></script>
 <script>
-    new Vue({
+    var vue = new Vue({
         el: '#app',
-        data: function() {
-            return { visible: false }
+        data:{
+            active : 0
+        },
+        methods:{
+            next :next,updateUser:updateUser
+        },
+        mounted:function(){
+
         }
     })
+
+    function next() {
+        if (this.active ==0 ){
+            updateUser();
+        }
+
+       // if (this.active++ > 2) this.active = 0;
+    }
+
+
+
+    function updateUser() {
+
+        var surl = "../updateUser";
+
+        $.ajax({
+            url:surl,
+            type: 'POST',
+            dataType:'json',
+            success:function(data){
+                vue.active++;
+            },
+            error:function(data){
+
+            }
+        });
+    }
+
+    function  updateOrg() {
+
+        var surl = "../updateOrg";
+
+        $.ajax({
+            url:surl,
+            type: 'POST',
+            dataType:'json',
+            success:function(data){
+              vue.active++;
+            },
+            error:function(data){
+
+            }
+        });
+    }
+
 </script>
 </html>

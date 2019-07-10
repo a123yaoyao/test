@@ -81,45 +81,19 @@ textField:'text',onChange:uie_dgd_search" id="db">
     });
 
     function  updateOrg() {
-        var dbName =$('#db').combobox("getValue");
-        var selRows = $('#dataTable').datagrid('getChecked');
-        if (selRows.length ==0){
-            alert("请选择更新用户的的表名称");
-            return;
-        }
         load();
-        var obj ={};
-        obj.tbs =selRows;
         var surl = "../updateOrg";
-
         $.ajax({
             url:surl,
             type: 'POST',
             dataType:'json',
-            data:{
-                "dbName":$('#db').combobox('getValue'),
-                "tbCollection":JSON.stringify(obj),
-            },
             success:function(data){
                 disLoad();
                 if(data.err){
                     alert(data.content) ;
                     return;
                 }
-                var list = data.list;
-
-                var html ='<table class="am-table"><thead> <tr><th>序号</th><th>表名</th><th>信息</th> </tr></thead>';
-                for(var i=0;i<list.length;i++){
-                    html +='<tr><td>'+(i+1)+'</td><td>'+list[i].TABLE_NAME+'</td><td>成功同步'+list[i].INSERT_COUNT+'条用户数据</td></tr>';
-                }
-                html +="</table>"
-                //alert(html);
-                $('#return_message').html('');
-                $('#return_message').append(html);
-                $('#your-modal').modal({
-                    relatedTarget: this
-
-                });
+                alert("success");
             },
             error:function(data){
 
@@ -128,7 +102,7 @@ textField:'text',onChange:uie_dgd_search" id="db">
     }
 
     function updateUser() {
-        var dbName =$('#db').combobox("getValue");
+        /*var dbName =$('#db').combobox("getValue");
         var selRows = $('#dataTable').datagrid('getChecked');
         if (selRows.length ==0){
             alert("请选择更新用户的的表名称");
@@ -136,24 +110,27 @@ textField:'text',onChange:uie_dgd_search" id="db">
         }
         load();
         var obj ={};
-        obj.tbs =selRows;
+        obj.tbs =selRows;*/
+        load();
         var surl = "../updateUser";
 
         $.ajax({
             url:surl,
             type: 'POST',
             dataType:'json',
-            data:{
+           /* data:{
                 "dbName":$('#db').combobox('getValue'),
                 "tbCollection":JSON.stringify(obj),
-            },
+            },*/
             success:function(data){
                 disLoad();
                 if(data.err){
                     alert(data.content) ;
                     return;
                 }
-                var list = data.list;
+
+                alert("success");
+               /* var list = data.list;
 
                 var html ='<table class="am-table"><thead> <tr><th>序号</th><th>表名</th><th>信息</th> </tr></thead>';
                 for(var i=0;i<list.length;i++){
@@ -166,7 +143,7 @@ textField:'text',onChange:uie_dgd_search" id="db">
                 $('#your-modal').modal({
                     relatedTarget: this
 
-                });
+                });*/
             },
             error:function(data){
 

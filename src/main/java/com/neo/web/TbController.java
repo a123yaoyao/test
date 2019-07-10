@@ -205,7 +205,7 @@ public class TbController  {
 
     @RequestMapping("/updateUser")
     @ResponseBody
-    public Map<String,Object> updateUser(String dbName, String tbCollection) throws Exception {
+    public Map<String,Object> updateUser() throws Exception {
         Connection masterConn = null ;//主库连接
         Connection slaverConn = null;//从库连接
         int groupSiz = 0; //每张表数据插入多次 一次插入的数据条数
@@ -216,36 +216,40 @@ public class TbController  {
 
         Map<String, String> resultMap = null;
         try{
-            masterConn = DataSourceHelper.GetConnection(masterDataSource);
-            slaverConn = DataSourceHelper.GetConnection(dbName);
+           /* masterConn = DataSourceHelper.GetConnection(masterDataSource);
+            //slaverConn = DataSourceHelper.GetConnection(dbName);
             Long start =   System.currentTimeMillis();
             groupSiz= Integer.valueOf(   groupSize  );
-            list = getParamList(tbCollection, "tbs");
+            //list = getParamList(tbCollection, "tbs");
             int k=0;
             int count=0;
-            DbUtil salverDbUtil =new DbUtil(slaverConn);
-            for (Map<String, Object> map : list) {
+            DbUtil salverDbUtil =new DbUtil(slaverConn);*/
+            tbService.updateUser1( );
+           // resultMap.put("INSERT_COUNT",+"");
+          /*  for (Map<String, Object> map : list) {
                 tbName = map.get("TABLE_NAME") + "";
                 resultMap = new HashMap();
                 resultMap.put("TABLE_NAME", tbName);
-                resultMap.put("INSERT_COUNT", tbService.updateUser(dbName, tbName, masterDataSource, Integer.valueOf(groupSiz),masterConn,slaverConn)+"");
+                //resultMap.put("INSERT_COUNT", tbService.updateUser(dbName, tbName, masterDataSource, Integer.valueOf(groupSiz),masterConn,slaverConn)+"");
+                resultMap.put("INSERT_COUNT", tbService.updateUser1(dbName, tbName, masterDataSource, Integer.valueOf(groupSiz),masterConn,slaverConn)+"");
+
                 result.add(resultMap);
-            }
-            resu.put("list",result);
+            }*/
+            //resu.put("list",result);
             Long end =   System.currentTimeMillis();
-            masterConn.commit();
-            logger.info("插入数据所花费的时间为"+ (end-start) /1000 +"s");
+            //masterConn.commit();
+           // logger.info("插入数据所花费的时间为"+ (end-start) /1000 +"s");
         }catch (Exception e){
             resu.put("err",true);
             resu.put("content",e.getMessage());
             logger.error(e.getMessage());
         }finally {
-            if (null!=masterConn){
+          /*  if (null!=masterConn){
                 masterConn.close();
             }
             if (null!=slaverConn){
                 slaverConn.close();
-            }
+            }*/
         }
 
         return resu;
@@ -267,21 +271,22 @@ public class TbController  {
         Map<String, String> resultMap = null;
         try{
             masterConn = DataSourceHelper.GetConnection(masterDataSource);
-            slaverConn = DataSourceHelper.GetConnection(dbName);
+            //slaverConn = DataSourceHelper.GetConnection(dbName);
             Long start =   System.currentTimeMillis();
             groupSiz= Integer.valueOf(   groupSize  );
-            list = getParamList(tbCollection, "tbs");
+            //list = getParamList(tbCollection, "tbs");
             int k=0;
             int count=0;
-            DbUtil salverDbUtil =new DbUtil(slaverConn);
-            for (Map<String, Object> map : list) {
+            //DbUtil salverDbUtil =new DbUtil(slaverConn);
+            tbService.updateOrg1(masterConn);
+          /*  for (Map<String, Object> map : list) {
                 tbName = map.get("TABLE_NAME") + "";
                 resultMap = new HashMap();
                 resultMap.put("TABLE_NAME", tbName);
                 resultMap.put("INSERT_COUNT", tbService.updateOrg(dbName, tbName, masterDataSource, Integer.valueOf(groupSiz),masterConn,slaverConn)+"");
                 result.add(resultMap);
             }
-            resu.put("list",result);
+            resu.put("list",result);*/
             Long end =   System.currentTimeMillis();
             masterConn.commit();
             logger.info("插入数据所花费的时间为"+ (end-start) /1000 +"s");

@@ -512,7 +512,7 @@ public class DbUtil {
      */
     public int batchDelete(List<Map<String, Object>> data, List<Map<String, Object>> uniqueList, String tbName) throws Exception {
 
-        if (tbName.equals("EAF_ACM_R_USERORG") || tbName.equals("EAF_ACM_ORG")){
+        if (tbName.equals("EAF_ACM_R_USERORG") || tbName.equals("EAF_ACM_ORG") || tbName.equals("EAF_DMM_METACLASS_M")){
               specialDelete( data,  uniqueList,  tbName);
         }
         int len =0;
@@ -585,7 +585,7 @@ public class DbUtil {
 
     private int specialDelete(List<Map<String,Object>> data, List<Map<String,Object>> uniqueList, String tbName) throws SQLException {
         String sql=null;
-        if (tbName.equals("EAF_ACM_R_USERORG")||tbName.equals("EAF_ACM_ORG") ){
+        if (tbName.equals("EAF_ACM_R_USERORG")||tbName.equals("EAF_ACM_ORG")|| tbName.equals("EAF_DMM_METACLASS_M") ){
              sql =" delete from "+tbName+" where eaf_id = ? ";
         }
 

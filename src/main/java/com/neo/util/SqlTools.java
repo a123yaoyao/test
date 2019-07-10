@@ -1,5 +1,8 @@
 package com.neo.util;
 
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -50,6 +53,50 @@ public  class SqlTools {
         sql .append(" ) ");
         return sql.toString();
     }
+
+    /**
+     * 获取创建表的sql
+     * @param tbName
+     * @param tableStructure
+     */
+    public static String getCreateTableSql(String tbName, List<Map<String, Object>> tableStructure) throws IOException, SQLException {
+        String primarySql ="";
+        String dataType = null; //数据类型
+        String columnName =null ;//列名
+        List<String> primaryList =new ArrayList<>();
+        String sql =" CREATE TABLE "+tbName+" (\n";
+        int k=0;
+        for (Map<String,Object> map :tableStructure ) {
+            dataType = map.get("DATA_TYPE")+"" ;
+            columnName  = map.get("COLUMN_NAME")+"" ;
+            k++;
+            if ("P".equals(map.get("IS_PRIMARY")+"")){
+                primaryList.add(columnName);
+            }
+            sql+= " "+map.get("COLUMN_NAME") +" "+dataType ;
+            if (null!= map.get("DATA_LENGTH") ){
+                if ("DATE".equals(dataType)||"CLOB".equals(dataType)
+                        ||"BLOB".equals(dataType)  ||"LONG RAW".equals(dataType)
+                        ) sql+= " " ;
+                else sql+= " (" + map.get("DATA_LENGTH")+")";
+            }
+            if ("N".equals(map.get("NULLABLE"))){
+                sql+=" NOT NULL "  ;
+            }
+            if ("U".equals(map.get("IS_UNIQUE")+"")){
+                sql+=" UNIQUE "  ;
+            }
+            if (k==tableStructure.size() && primaryList.size() == 0 ){
+                sql +=" \n";
+            }else  sql +=" ,\n";
+        }
+        if (primaryList.size() > 0 ){
+            primarySql = " PRIMARY KEY("+CollectionUtil.ListToString(primaryList)+")";
+        }
+        sql += primarySql +"   ) ";
+        return sql ;
+    }
+
 
 
 }
