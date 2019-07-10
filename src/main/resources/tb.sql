@@ -1,4 +1,4 @@
--- Create table
+-- Create table 记录用户
 create table EAF_USER_RECORD
 (
   eaf_id        VARCHAR2(200) not null,
@@ -7,13 +7,21 @@ create table EAF_USER_RECORD
   eaf_loginname VARCHAR2(200)
 )
 
-
+-- Create table 记录组织
   create table EAF_ORG_RECORD
 (
   eaf_id        VARCHAR2(200) not null,
   eaf_db_name   VARCHAR2(200),
   eaf_name      VARCHAR2(200),--部门名称
   BIM_NUM VARCHAR2(200) --部门编号
+)
+-- Create table 记录项目
+  create table EAF_PRJ_RECORD
+(
+  eaf_id        VARCHAR2(200) not null,
+  eaf_db_name   VARCHAR2(200),
+  eaf_name      VARCHAR2(200),--项目名称
+  BIM_NUM VARCHAR2(200) --项目编号
 )
 
 -- Create table
@@ -28,17 +36,7 @@ create table WF_EVENT_JOB_DETAILS
   requests_recovery VARCHAR2(1) not null,
   job_data          LONG RAW
 )
-tablespace TIEAF_SYS
-  pctfree 10
-  initrans 1
-  maxtrans 255
-  storage
-  (
-    initial 64K
-    next 1M
-    minextents 1
-    maxextents unlimited
-  );
+
 -- Create/Recreate primary, unique and foreign key constraints
 create table WF_EVENT_JOB_DETAILS
 (
