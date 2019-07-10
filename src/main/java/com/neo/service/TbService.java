@@ -6,10 +6,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.neo.model.bo.TbDealBO;
-import com.neo.util.CollectionUtil;
-import com.neo.util.DataSourceHelper;
-import com.neo.util.DbUtil;
-import com.neo.util.JDBCUtil;
+import com.neo.util.*;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -285,7 +282,7 @@ public class TbService {
                     }
                     sql+=" ) ";
                     masterDbUtil.executeUpdate(sql,new Object[][]{});
-                    logger.info("为"+dbName+"库添加"+cloumnName+"字段成功！");
+                    logger.info("为"+masterDataSource+"库添加"+cloumnName+"字段成功！");
                 }
             }
         }
@@ -390,7 +387,7 @@ public class TbService {
                 logger.error("插入用户记录表出错，原因"+e.getMessage());
             }
         }
-        if ("EAF_ACM_ORG".equals(tbName)){
+        if ("EAF_ACM_ORG".equals(tbName)|| "BIM_PRJ_PROJ".equals(tbName)){
             List<Map<String,Object>> record =new ArrayList<>();
             for (Map m:data) {
                 Map<String,Object> recordMap =new LinkedHashMap<>();
@@ -410,8 +407,15 @@ public class TbService {
             }
 
             try {
-                masterDbUtil.executeUpdate("delete from EAF_ORG_RECORD where eaf_db_name ='"+dbName+"'",new Object[][]{});
-                masterDbUtil.insertTbRecord("EAF_ORG_RECORD",record,mapper);
+                if ("EAF_ACM_ORG".equals(tbName)){
+                    masterDbUtil.executeUpdate("delete from EAF_ORG_RECORD where eaf_db_name ='"+dbName+"'",new Object[][]{});
+                    masterDbUtil.insertTbRecord("EAF_ORG_RECORD",record,mapper);
+                }
+                if("BIM_PRJ_PROJ".equals(tbName)){
+                    masterDbUtil.executeUpdate("delete from EAF_PRJ_RECORD where eaf_db_name ='"+dbName+"'",new Object[][]{});
+                    masterDbUtil.insertTbRecord("EAF_PRJ_RECORD",record,mapper);
+                }
+
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error("插入记录表出错，原因"+e.getMessage());
@@ -600,40 +604,7 @@ public class TbService {
      * @param param
      */
     private void getCreateTableSql(String tbName, List<Map<String, Object>> tableStructure, Map<String, Object> param) throws IOException, SQLException {
-        String primarySql ="";
-        String dataType = null; //数据类型
-        String columnName =null ;//列名
-        List<String> primaryList =new ArrayList<>();
-        String sql =" CREATE TABLE "+tbName+" (\n";
-        int k=0;
-        for (Map<String,Object> map :tableStructure ) {
-            dataType = map.get("DATA_TYPE")+"" ;
-            columnName  = map.get("COLUMN_NAME")+"" ;
-            k++;
-            if ("P".equals(map.get("IS_PRIMARY")+"")){
-                primaryList.add(columnName);
-            }
-            sql+= " "+map.get("COLUMN_NAME") +" "+dataType ;
-            if (null!= map.get("DATA_LENGTH") ){
-                if ("DATE".equals(dataType)||"CLOB".equals(dataType)
-                        ||"BLOB".equals(dataType)  ||"LONG RAW".equals(dataType)
-                        ) sql+= " " ;
-                else sql+= " (" + map.get("DATA_LENGTH")+")";
-            }
-            if ("N".equals(map.get("NULLABLE"))){
-                sql+=" NOT NULL "  ;
-            }
-            if ("U".equals(map.get("IS_UNIQUE")+"")){
-                sql+=" UNIQUE "  ;
-            }
-            if (k==tableStructure.size() && primaryList.size() == 0 ){
-                sql +=" \n";
-            }else  sql +=" ,\n";
-        }
-        if (primaryList.size() > 0 ){
-            primarySql = " PRIMARY KEY("+CollectionUtil.ListToString(primaryList)+")";
-        }
-        sql += primarySql +"   ) ";
+        String sql = SqlTools.getCreateTableSql(tbName, tableStructure);
         param.put("sql",sql);
     }
 
@@ -705,6 +676,74 @@ public class TbService {
        return len+"";
     }
 
+    public String updateUser1( ) throws SQLException {
+        JSONArray constraint = JSONArray.parseArray(tbUserId);
+        List<String> columnList = null ;
+        JSONObject jsonObject =null;
+        String sql = "" ;
+        Connection masterConn = DataSourceHelper.GetConnection(masterDataSource);
+        DbUtil masterDbUtil = new DbUtil(masterConn);
+        int len =0;
+        String tbName = "";
+        for (int i = 0; i <constraint.size() ; i++) {
+            jsonObject = (JSONObject) constraint.get(i);
+                columnList = (List<String>)jsonObject.get("column");
+                tbName = jsonObject.getString("table");
+                for (String column: columnList) {
+                    sql =  getQueryUserIdMapperSql(column,tbName);
+                    try {
+                        List<Map<String,Object>> list = masterDbUtil.excuteQuery(sql,new Object[][]{});
+                        //更新业务表关联人员为空的人员id
+                        len += masterDbUtil.updateTbCreator(list,tbName,column);
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                        logger.info("查询或插入业务表人员报错"+e.getSQLState());
+                    }
+                }
+        }
+
+        try {
+            List<Map<String,Object>> list = masterDbUtil.excuteQuery("SELECT table_name FROM USER_TABLES",new Object[][]{});
+            String tb =null;
+            List<Map<String,Object>> newList =null;
+            int i =0;
+            for (Map<String,Object> map : list) {
+                try{
+                    i++;
+                    tb = map.get("TABLE_NAME")+"";
+                    sql =  getQueryUserIdMapperSql("EAF_CREATOR",tbName);
+                    newList = masterDbUtil.excuteQuery(sql,new Object[][]{});
+                    len += masterDbUtil.updateTbCreator(newList,tbName,"EAF_CREATOR");
+                    sql =  getQueryUserIdMapperSql("EAF_MODIFIER",tbName);
+                    newList = masterDbUtil.excuteQuery(sql,new Object[][]{});
+                    len += masterDbUtil.updateTbCreator(newList,tbName,"EAF_MODIFIER");
+
+                    if(i>0 && i%50==0){
+                        logger.info("序号:"+i+"更新"+tb+"表成功");
+                        masterConn.commit();
+                        masterConn.close();
+                        masterConn = DataSourceHelper.GetConnection(masterDataSource);
+                        masterDbUtil =new DbUtil(masterConn);
+                    }
+                }catch (Exception e){
+                    logger.error(e.getMessage());
+                    continue;
+                }
+
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            if (null!=masterConn && !masterConn.isClosed()){
+                masterConn.close();
+            }
+        }
+
+        return len+"";
+    }
+
+
     private String getQueryUserIdMapperSql(String column,String tbName) {
         String querySql ="-- 查询当前业务表中人员关联结果为空的eaf_id 也就是现在的eaf_id\n" +
                 "with tmp as (" +
@@ -724,11 +763,7 @@ public class TbService {
     }
 
     private String getQueryOrgIdMapperSql(String column,String tbName,String compareKey,String compareTb) {
-       /// String compareKey = "BIM_NUM";
-       // String compareTb ="eaf_acm_org";
         String recordTb ="EAF_ORG_RECORD";
-       // String tbName ="EAF_ACM_R_USERORG";
-       // String column ="EAF_R_LEFTID";
         String querySql ="-- 查询当前业务表中人员关联结果为空的eaf_id 也就是现在的eaf_id\n" +
                 "with tmp as (" +
                 "select distinct t."+column+" from "+tbName+" t where t."+column+" not in (select distinct eaf_id from "+compareTb+")\n" +
@@ -747,7 +782,27 @@ public class TbService {
     }
 
     public static void main(String[] args) {
-
+        String recordTb ="EAF_PRJ_RECORD";
+        String column ="BIM_PROJ";
+        String tbName ="BIM_QUALITY_PROBLEM";
+        String compareTb ="BIM_PRJ_PROJ";
+        String compareKey ="BIM_NUM";
+        String querySql ="-- 查询当前业务表中人员关联结果为空的eaf_id 也就是现在的eaf_id\n" +
+                "with tmp as (" +
+                "select distinct t."+column+" from "+tbName+" t where t."+column+" not in (select distinct eaf_id from "+compareTb+")\n" +
+                "),\n" +
+                "\n" +
+                "--找出这些eaf_id 在记录表中对应的 人员登录名\n" +
+                "tmp_user as (\n" +
+                "select m.* from "+recordTb+" m where m.eaf_id in (select "+column+" from tmp)\n" +
+                "),\n" +
+                "finall_user as (\n" +
+                "select  t.eaf_id ,tm.eaf_id t_id ,t.eaf_name  from "+compareTb+"  t inner join tmp_user  tm on t."+compareKey+" =tm."+compareKey+" \n" +
+                ")\n" +
+                "\n" +
+                "select * from finall_user";
+        System.out.println(querySql);
+        //return querySql;
     }
 
     public List<Map<String, Object>> getTableStruct(String dbName, String tbName, Connection conn) throws SQLException {
@@ -816,5 +871,34 @@ public class TbService {
             }
         }*/
         return len+"";
+    }
+
+    public void updateOrg1(Connection masterConn) {
+        JSONArray constraint = JSONArray.parseArray(tbOrgId);
+        List<String> columnList = null ;
+        JSONObject jsonObject =null;
+        String sql = "" ;
+        DbUtil masterDbUtil = new DbUtil(masterConn);
+        Boolean flag =false;
+        int len =0;
+        String tbName =null;
+        for (int i = 0; i <constraint.size() ; i++) {
+            jsonObject = (JSONObject) constraint.get(i);
+
+                columnList = (List<String>)jsonObject.get("column");
+                tbName = jsonObject.getString("table");
+                for (String column: columnList) {
+                    sql =  getQueryOrgIdMapperSql(column,tbName,"BIM_NUM","eaf_acm_org");
+                    try {
+                        List<Map<String,Object>> list = masterDbUtil.excuteQuery(sql,new Object[][]{});
+                        //更新业务表关联人员为空的人员id
+                        len += masterDbUtil.updateTbCreator(list,tbName,column);
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                        logger.info("查询或插入业务表人员报错"+e.getSQLState());
+                    }
+                }
+
+        }
     }
 }
