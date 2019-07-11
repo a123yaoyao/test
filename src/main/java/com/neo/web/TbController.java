@@ -254,6 +254,21 @@ public class TbController  {
 
     }
 
+    @RequestMapping("/updateProj")
+    @ResponseBody
+    public Map<String,Object> updateProj(String dbName, String tbCollection) throws Exception {
+        Map<String,Object> resu =new HashMap<>();
+        try{
+            tbService.updateProj();
+        }catch (Exception e){
+            resu.put("err",true);
+            resu.put("content",e.getMessage());
+            logger.error(e.getMessage());
+        }
+        return resu;
+
+    }
+
     @RequestMapping("/getTableStruct")
     @ResponseBody
     public Map<String,Object>  getTableStruct(String dbName,String tbName) throws SQLException {

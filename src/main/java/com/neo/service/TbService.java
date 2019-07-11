@@ -50,8 +50,13 @@ public class TbService {
     @Value("${tbOrgIds}")
     public String tbOrgId;
 
+    @Value("${tbPrjIds}")
+    public String tbPrjId;
+
     @Value("${threadNum}")
     public String threadNum;
+
+
 
 
     int getThreads(int dataCount){
@@ -781,12 +786,8 @@ public class TbService {
         return querySql;
     }
 
-    public static void main(String[] args) {
+    private String getQueryProjMapperSql(String column,String tbName,String compareKey,String compareTb) {
         String recordTb ="EAF_PRJ_RECORD";
-        String column ="BIM_PROJ";
-        String tbName ="BIM_QUALITY_PROBLEM";
-        String compareTb ="BIM_PRJ_PROJ";
-        String compareKey ="BIM_NUM";
         String querySql ="-- 查询当前业务表中人员关联结果为空的eaf_id 也就是现在的eaf_id\n" +
                 "with tmp as (" +
                 "select distinct t."+column+" from "+tbName+" t where t."+column+" not in (select distinct eaf_id from "+compareTb+")\n" +
@@ -801,8 +802,31 @@ public class TbService {
                 ")\n" +
                 "\n" +
                 "select * from finall_user";
+        return querySql;
+    }
+
+    public static void main(String[] args) {
+        String recordTb ="EAF_PRJ_RECORD";
+        String column ="BIM_PROJ";
+        String tbName ="BIM_QUALITY_PROBLEM";
+        String compareTb ="BIM_PRJ_PROJ";
+        String compareKey ="BIM_NUM";
+        String querySql ="" +
+                "with tmp as (" +
+                "select distinct t."+column+" from "+tbName+" t where t."+column+" not in (select distinct eaf_id from "+compareTb+")\n" +
+                "),\n" +
+                "\n" +
+                "--找出这些eaf_id 在记录表中对应的 人员登录名\n" +
+                "tmp_user as (\n" +
+                "select m.* from "+recordTb+" m where m.eaf_id in (select "+column+" from tmp)\n" +
+                "),\n" +
+                "finall_user as (\n" +
+                "select  t.eaf_id ,tm.eaf_id t_id ,t.eaf_name  from "+compareTb+"  t inner join tmp_user  tm on t."+compareKey+" =tm."+compareKey+" \n" +
+                ")\n" +
+                "\n" +
+                "select * from finall_user";
         System.out.println(querySql);
-        //return querySql;
+
     }
 
     public List<Map<String, Object>> getTableStruct(String dbName, String tbName, Connection conn) throws SQLException {
@@ -900,5 +924,70 @@ public class TbService {
                 }
 
         }
+    }
+
+    public void updateProj() throws SQLException {
+        JSONArray constraint = JSONArray.parseArray(tbPrjId);
+        List<String> columnList = null ;
+        JSONObject jsonObject =null;
+        String sql = "" ;
+        Connection masterConn = DataSourceHelper.GetConnection(masterDataSource);
+        DbUtil masterDbUtil = new DbUtil(masterConn);
+        int len =0;
+        String tbName = "";
+        for (int i = 0; i <constraint.size() ; i++) {
+            jsonObject = (JSONObject) constraint.get(i);
+            columnList = (List<String>)jsonObject.get("column");
+            tbName = jsonObject.getString("table");
+            for (String column: columnList) {
+                 sql =  getQueryOrgIdMapperSql(column,tbName,"BIM_NUM","BIM_PRJ_PROJ");
+                try {
+                    List<Map<String,Object>> list = masterDbUtil.excuteQuery(sql,new Object[][]{});
+                    //更新业务表关联人员为空的人员id
+                    len += masterDbUtil.updateTbCreator(list,tbName,column);
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    logger.info("查询或插入业务表人员报错"+e.getSQLState());
+                }
+            }
+        }
+
+        try {
+            List<Map<String,Object>> list = masterDbUtil.excuteQuery("SELECT table_name FROM USER_TABLES",new Object[][]{});
+            String tb =null;
+            List<Map<String,Object>> newList =null;
+            int i =0;
+            for (Map<String,Object> map : list) {
+                try{
+                    i++;
+                    tb = map.get("TABLE_NAME")+"";
+                    sql  =  getQueryProjMapperSql("BIM_PROJ",tbName,"BIM_NUM","BIM_PRJ_PROJ");
+
+                    newList = masterDbUtil.excuteQuery(sql,new Object[][]{});
+                    len += masterDbUtil.updateTbCreator(newList,tbName,"BIM_PROJ");
+
+                    if(i>0 && i%50==0){
+                        logger.info("序号:"+i+"更新"+tb+"表成功");
+                        masterConn.commit();
+                        masterConn.close();
+                        masterConn = DataSourceHelper.GetConnection(masterDataSource);
+                        masterDbUtil =new DbUtil(masterConn);
+                    }
+                }catch (Exception e){
+                    logger.error(e.getMessage());
+                    continue;
+                }
+
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            if (null!=masterConn && !masterConn.isClosed()){
+                masterConn.close();
+            }
+        }
+
+
     }
 }
