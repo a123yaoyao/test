@@ -123,10 +123,7 @@ public class TbController  {
             for (Map<String, Object> map : list) {
 
                 tbName = map.get("TABLE_NAME") + "";
-               /* int i = specialDealTble(dbName,tbName);
-                if (i==1){
-                    continue;
-                }*/
+
                 count = salverDbUtil.getCount("select count(*) from "+tbName,new Object[][]{});
                 insertCountRecord += count;//记录 每张表的数据条数的和
                 resultMap = new HashMap();
@@ -136,8 +133,13 @@ public class TbController  {
 
                 if (count<8000){
                     insertMessageMap =tbService.mergeData(dbName, tbName, masterDataSource, list, Integer.valueOf(groupSize),masterConn,slaverConn);
+
                 }else{
                     insertMessageMap = largeTbService. mergeData( count, tbName, dbName);
+                }
+                if (tbName.equals("EAF_DMM_METAATTR_M")){ //如果是模型属性类添加数据 同时要给资源表添加数据
+                    tbService.mergeData(dbName, "EAF_DMM_RESOURCE", masterDataSource, list, Integer.valueOf(groupSize),masterConn,slaverConn);
+
                 }
                 resultMap.put("INSERT_COUNT",insertMessageMap.get("INSERT_COUNT")+"" );
                 resultMap.put("MESSAGE",insertMessageMap.get("MESSAGE")+"" );
@@ -206,52 +208,14 @@ public class TbController  {
     @RequestMapping("/updateUser")
     @ResponseBody
     public Map<String,Object> updateUser() throws Exception {
-        Connection masterConn = null ;//主库连接
-        Connection slaverConn = null;//从库连接
-        int groupSiz = 0; //每张表数据插入多次 一次插入的数据条数
-        List<Map<String, Object>> list = null;
-        List<Map<String, String>> result = new ArrayList<>();
         Map<String,Object> resu =new HashMap<>();
-        String tbName = null;
-
-        Map<String, String> resultMap = null;
         try{
-           /* masterConn = DataSourceHelper.GetConnection(masterDataSource);
-            //slaverConn = DataSourceHelper.GetConnection(dbName);
-            Long start =   System.currentTimeMillis();
-            groupSiz= Integer.valueOf(   groupSize  );
-            //list = getParamList(tbCollection, "tbs");
-            int k=0;
-            int count=0;
-            DbUtil salverDbUtil =new DbUtil(slaverConn);*/
             tbService.updateUser1( );
-           // resultMap.put("INSERT_COUNT",+"");
-          /*  for (Map<String, Object> map : list) {
-                tbName = map.get("TABLE_NAME") + "";
-                resultMap = new HashMap();
-                resultMap.put("TABLE_NAME", tbName);
-                //resultMap.put("INSERT_COUNT", tbService.updateUser(dbName, tbName, masterDataSource, Integer.valueOf(groupSiz),masterConn,slaverConn)+"");
-                resultMap.put("INSERT_COUNT", tbService.updateUser1(dbName, tbName, masterDataSource, Integer.valueOf(groupSiz),masterConn,slaverConn)+"");
-
-                result.add(resultMap);
-            }*/
-            //resu.put("list",result);
-            Long end =   System.currentTimeMillis();
-            //masterConn.commit();
-           // logger.info("插入数据所花费的时间为"+ (end-start) /1000 +"s");
         }catch (Exception e){
             resu.put("err",true);
             resu.put("content",e.getMessage());
             logger.error(e.getMessage());
-        }finally {
-          /*  if (null!=masterConn){
-                masterConn.close();
-            }
-            if (null!=slaverConn){
-                slaverConn.close();
-            }*/
         }
-
         return resu;
 
 
@@ -261,32 +225,16 @@ public class TbController  {
     @ResponseBody
     public Map<String,Object> updateOrg(String dbName, String tbCollection) throws Exception {
         Connection masterConn = null ;//主库连接
-        Connection slaverConn = null;//从库连接
         int groupSiz = 0; //每张表数据插入多次 一次插入的数据条数
         List<Map<String, Object>> list = null;
         List<Map<String, String>> result = new ArrayList<>();
         Map<String,Object> resu =new HashMap<>();
         String tbName = null;
-
         Map<String, String> resultMap = null;
         try{
             masterConn = DataSourceHelper.GetConnection(masterDataSource);
-            //slaverConn = DataSourceHelper.GetConnection(dbName);
             Long start =   System.currentTimeMillis();
-            groupSiz= Integer.valueOf(   groupSize  );
-            //list = getParamList(tbCollection, "tbs");
-            int k=0;
-            int count=0;
-            //DbUtil salverDbUtil =new DbUtil(slaverConn);
             tbService.updateOrg1(masterConn);
-          /*  for (Map<String, Object> map : list) {
-                tbName = map.get("TABLE_NAME") + "";
-                resultMap = new HashMap();
-                resultMap.put("TABLE_NAME", tbName);
-                resultMap.put("INSERT_COUNT", tbService.updateOrg(dbName, tbName, masterDataSource, Integer.valueOf(groupSiz),masterConn,slaverConn)+"");
-                result.add(resultMap);
-            }
-            resu.put("list",result);*/
             Long end =   System.currentTimeMillis();
             masterConn.commit();
             logger.info("插入数据所花费的时间为"+ (end-start) /1000 +"s");
@@ -298,9 +246,7 @@ public class TbController  {
             if (null!=masterConn){
                 masterConn.close();
             }
-            if (null!=slaverConn){
-                slaverConn.close();
-            }
+
         }
 
         return resu;

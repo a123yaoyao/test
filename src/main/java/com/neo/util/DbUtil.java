@@ -512,9 +512,8 @@ public class DbUtil {
      */
     public int batchDelete(List<Map<String, Object>> data, List<Map<String, Object>> uniqueList, String tbName) throws Exception {
 
-        if (tbName.equals("EAF_ACM_R_USERORG") || tbName.equals("EAF_ACM_ORG") || tbName.equals("EAF_DMM_METACLASS_M")){
               specialDelete( data,  uniqueList,  tbName);
-        }
+
         int len =0;
 
         try{
@@ -585,10 +584,25 @@ public class DbUtil {
 
     private int specialDelete(List<Map<String,Object>> data, List<Map<String,Object>> uniqueList, String tbName) throws SQLException {
         String sql=null;
-        if (tbName.equals("EAF_ACM_R_USERORG")||tbName.equals("EAF_ACM_ORG")|| tbName.equals("EAF_DMM_METACLASS_M") ){
+        if (tbName.equals("EAF_ACM_R_USERORG")||tbName.equals("EAF_ACM_ORG")|| tbName.equals("EAF_DMM_METACLASS_M")
+        || tbName.equals("EAF_DMM_METAOPER_M") || tbName.equals("BIM_PRJ_PROJ")
+                ){
              sql =" delete from "+tbName+" where eaf_id = ? ";
         }
-
+        if(tbName.equals("EAF_DMM_METAATTR_M")){
+            sql = "delete from EAF_DMM_RESOURCE where EAF_RELATEATTRID =?";
+            pst = conn.prepareStatement(sql);
+            List<String> columnNames;
+            for (Map<String, Object> map : data) {
+                pst.setObject(1, map.get("EAF_ID") + "");
+                pst.addBatch();
+            }
+            int[] result = pst.executeBatch();
+            conn.commit();
+            pst.clearBatch();
+            sql = "delete from EAF_DMM_METAATTR_M where EAF_ID =?";
+        }
+        if ( null == sql) return 0;
         pst = conn.prepareStatement(sql);
         List<String> columnNames;
         for (Map<String, Object> map : data) {
