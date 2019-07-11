@@ -36,7 +36,7 @@ public class TbDealBO {
         }
         //测试
         if (tbName.equals("EAF_ACM_USER")){
-            new JDBCUtil(masterDataSource).executeUpdate("  update eaf_acm_user set eaf_phone = 15071228254  " ,new Object[][]{});
+            //new JDBCUtil(masterDataSource).executeUpdate("  update eaf_acm_user set eaf_phone = 15071228254  " ,new Object[][]{});
             new JDBCUtil(masterDataSource).executeUpdate("  update eaf_acm_user  set BIM_CATEGORY ='1 正式人员' where eaf_loginname ='sysadmin'  " ,new Object[][]{});
             new JDBCUtil(masterDataSource).executeUpdate("  delete from EAF_ACM_USER where  EAF_ID = '00000000000000000000000000000000'  and eaf_name is null  " ,new Object[][]{});
         }

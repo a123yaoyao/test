@@ -940,7 +940,7 @@ public class TbService {
             columnList = (List<String>)jsonObject.get("column");
             tbName = jsonObject.getString("table");
             for (String column: columnList) {
-                 sql =  getQueryOrgIdMapperSql(column,tbName,"BIM_NUM","BIM_PRJ_PROJ");
+                 sql =  getQueryProjMapperSql(column,tbName,"BIM_NUM","BIM_PRJ_PROJ");
                 try {
                     List<Map<String,Object>> list = masterDbUtil.excuteQuery(sql,new Object[][]{});
                     //更新业务表关联人员为空的人员id

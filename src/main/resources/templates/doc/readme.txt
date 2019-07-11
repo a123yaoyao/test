@@ -13,6 +13,9 @@ EAF_OMS_OPERLOG_1表大文本过多 一次查询5000条 超出oracle缓冲区大
 BIM_QUALITY_PROBLEM 表 仅能绑定要插入 LONG 列的 LONG 值
 BIM_VISIBLE 表   可见人 BIM_VISIBLE 存的是 ['guid','guid']  多个用户id
 
+----------------------------------------------------------
+
+
 
 
 
