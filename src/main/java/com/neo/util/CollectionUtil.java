@@ -9,12 +9,17 @@ package com.neo.util;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.sql.Clob;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -32,6 +37,20 @@ public  class CollectionUtil {
     // String类型 转 list
     public static List <String>  stringToList(String input) {
         return  Splitter.on(",").trimResults().splitToList(input.replace("[","").replace("]",""));
+    }
+
+    /**
+     * 解析json
+     *
+     * @param tbCollection
+     * @return
+     */
+    public static List<Map<String, Object>> getParamList(String tbCollection, String key)throws Exception {
+        JsonParser jsonParser = new JsonParser();
+        JsonObject jo = (JsonObject) jsonParser.parse(tbCollection);
+        JsonArray jsonArr = jo.getAsJsonArray(key);
+        Gson googleJson = new Gson();
+        return googleJson.fromJson(jsonArr, ArrayList.class);
     }
 
 

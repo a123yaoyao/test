@@ -40,7 +40,7 @@ public class DateUtil {
 
     /**
      * @param
-     * 返回java.sql.Date格式的
+     *
      * */
     public static java.sql.Date strToDate(String strDate) {
         String str = strDate;

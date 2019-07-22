@@ -35,20 +35,8 @@ public class LargeTbService{
     public String uniqueConstraint;
 
 
-    int getThreads(int dataCount){
-        if (dataCount>1000 && dataCount<=10000){
-            return dataCount%2000==0? dataCount/2000:dataCount/2000+1;
-        }
-        if (dataCount>10000 ){
-           // return dataCount%5000==0? dataCount/5000:dataCount/5000+1;
-            return  10;
-        }
-      /*  if (dataCount>100000 ){
-            return 10;
-           // return dataCount%5000==0? dataCount/5000:dataCount/5000+1;
-        }*/
-
-        return 1;
+    int getThreads(){
+        return  Runtime.getRuntime().availableProcessors();
     }
 
     int getGroupSize(int dataCount){
@@ -76,7 +64,7 @@ public class LargeTbService{
         returnMap.put("INSERT_COUNT","0");
         returnMap.put("MESSAGE","执行成功");
         //获得线程数量
-        int threads = getThreads(dataNums);
+        int threads = getThreads();
         //对比主库和从库创建表或者增加修改列
         String addColumns = createTable(tbName,dbName);
         if (dataNums ==0 ) return returnMap;//如果数据查询为0条直接返回

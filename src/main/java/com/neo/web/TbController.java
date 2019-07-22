@@ -7,6 +7,7 @@ import com.google.gson.JsonParser;
 import com.neo.service.LargeTbService;
 import com.neo.service.TableService;
 import com.neo.service.TbService;
+import com.neo.util.CollectionUtil;
 import com.neo.util.DataSourceHelper;
 import com.neo.util.DbUtil;
 import com.neo.util.StringUtils;
@@ -114,7 +115,7 @@ public class TbController  {
             slaverConn = DataSourceHelper.GetConnection(dbName);
             Long start =   System.currentTimeMillis();
 
-            list = getParamList(tbCollection, "tbs");
+            list = CollectionUtil.getParamList(tbCollection, "tbs");
             int insertCountRecord =0 ;
             int k=0;
             int count=0;
@@ -301,7 +302,7 @@ public class TbController  {
             if (null== dbName || dbName.trim().equals("")) dbName =masterDataSource;
             JsonParser jsonParser = new JsonParser();
             JsonObject jo = (JsonObject) jsonParser.parse(content);
-            list = getParamList(content, "content");
+            list = CollectionUtil.getParamList(content, "content");
             conn = DataSourceHelper.GetConnection(dbName);
 
             map = tbService.editTableStruct(dbName,tbName, jo,conn);
@@ -319,19 +320,7 @@ public class TbController  {
 
 
 
-    /**
-     * 解析json
-     *
-     * @param tbCollection
-     * @return
-     */
-    private List<Map<String, Object>> getParamList(String tbCollection, String key)throws Exception {
-        JsonParser jsonParser = new JsonParser();
-        JsonObject jo = (JsonObject) jsonParser.parse(tbCollection);
-        JsonArray jsonArr = jo.getAsJsonArray(key);
-        Gson googleJson = new Gson();
-        return googleJson.fromJson(jsonArr, ArrayList.class);
-    }
+
 
 
 }
