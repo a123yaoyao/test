@@ -93,7 +93,9 @@ public class TaskTbMerge  implements Callable<Map<String,Object>> {
                 String  querySql = SqlTools.queryDataPager(tbName,startIndex,maxIndex);
                 List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
                 //删除重复的数据
-                 int i= batchDelete(list);
+
+                     batchDelete(list);
+
                 //获取当前主库表结构
                 List<Map<String, Object>> masterTbStruct = selectTableStructureByDbAndTb();
                 //插入数据
@@ -122,14 +124,16 @@ public class TaskTbMerge  implements Callable<Map<String,Object>> {
                     logger.info("当前线程名称："+Thread.currentThread().getName()+" 执行sql:"+querySql);
                     List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
                     //删除重复的数据
-                    batchDelete(list);
+
+                        batchDelete(list);
+
                     //获取当前主库表结构
                     List<Map<String, Object>> masterTbStruct = selectTableStructureByDbAndTb();
                     //插入数据
                     returnMap = new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStruct);
                      count1= resultMap.get("INSERT_COUNT")==null?"0":resultMap.get("INSERT_COUNT")+"";
                      count2= returnMap.get("INSERT_COUNT")==null?"0":returnMap.get("INSERT_COUNT")+"";
-                    resultMap.put("INSERT_COUNT",IntMath.checkedAdd(Integer.valueOf(count1), Integer.valueOf(count2) ));
+                     resultMap.put("INSERT_COUNT",IntMath.checkedAdd(Integer.valueOf(count1), Integer.valueOf(count2) ));
                 }
 
             }

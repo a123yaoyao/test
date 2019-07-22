@@ -40,14 +40,8 @@ public class LargeTbService{
     }
 
     int getGroupSize(int dataCount){
-        if (dataCount>1000 && dataCount<=10000){
-            return 2000;
-        }
-        if (dataCount>10000){
-             return dataCount%10==0? dataCount/10:dataCount/10+1;
-        }
-
-        return dataCount;
+        int threads =Runtime.getRuntime().availableProcessors() ;
+         return dataCount%threads==0? dataCount/threads:dataCount/threads+1;
     }
 
     /**
@@ -94,9 +88,9 @@ public class LargeTbService{
             List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(sql,new Object[][]{});
             returnMap =   new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStructor);
         }else{
+
             int groupSize =getGroupSize(dataCount);
             final BlockingQueue<Future<Map<String,Object>>> queue = new LinkedBlockingQueue<>();
-            final BlockingQueue<Future<Integer>> queue1 = new LinkedBlockingQueue<>();
             final CountDownLatch  endLock = new CountDownLatch(threads); //结束门
             final ExecutorService exec = Executors.newFixedThreadPool(threads);//最大并发
             Map<Integer, List<Map<String,Object>>> map =new LinkedHashMap<>();
@@ -115,67 +109,15 @@ public class LargeTbService{
             } ;
             exec.shutdown(); //关闭线程池
             returnMap.put("INSERT_COUNT",insertCount+"");
+            returnMap.put("MESSAGE","成功同步："+insertCount+"条数据！");
         }
         return returnMap;
     }
-    /**
-     * 批量删除重复的数据
-     * @param data
-     * @return
-     * @throws Exception
-     */
-    private int batchDelete(List<Map<String, Object>> data,String tbName) throws Exception {
-        //获得列表中的唯一键
-        List<Map<String, Object>> uniqueList = getUniqueConstriant(tbName);
-        //批量删除重复数据
-        return new JDBCUtil(masterDataSource).batchDelete(data, uniqueList, tbName);
-    }
 
-    /**
-     * 获得唯一约束
-     */
-    private List<Map<String, Object>> getUniqueConstriant(String tbName) throws Exception {
-        List<Map<String, Object>> list = null;
-        JSONArray constraint = JSONArray.parseArray(uniqueConstraint);
-        JSONObject jsonObject =null;
-        for (int i = 0; i <constraint.size() ; i++) {
-            jsonObject = (JSONObject) constraint.get(i);
-            if (tbName.equals(jsonObject.get("table")+"")){
-                list = new ArrayList<>();
-                Map<String,Object> map =new HashMap<>();
-                map.put("COLUMN_NAME",(List<String>)jsonObject.get("column"));
-                map.put("IS_NEED_DEL",jsonObject.get("isNeedDel"));
-                list.add(map);
-                break;
-            }
-        }
-        if (null!= list)return list;
-        if (null == list){//判断该表是否存在eaf_Id
-            int i = hasEAFId(tbName);
-            list =new ArrayList<>();
-            Map<String,Object> map =new HashMap<>();
-            if (i==1) {
-                List<String> columns = new ArrayList<>();
-                columns.add("EAF_ID");
-                map.put("COLUMN_NAME",columns);
-                list.add(map);
-            }
-        }
 
-        for (Map<String,Object> map:list) {
-            map.put("IS_NEED_DEL",true);
-        }
-        return list;
-    }
 
-    private int hasEAFId(String tbName) throws SQLException {
-        String  sql="select count(0) as TABLE_NUMS  from user_tab_columns   \n" +
-                "where UPPER(column_name)='EAF_ID' AND TABLE_NAME = '"+tbName+"'";
-        List<Map<String,Object>> list =new JDBCUtil(masterDataSource).excuteQuery(sql,new Object[][]{});
-        String count =list.get(0).get("TABLE_NUMS")+"";
-        if ("1".equals(count) ) return 1;
-        else return 0;
-    }
+
+
 
     /**
      * 创建表或修改添加列

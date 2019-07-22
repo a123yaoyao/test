@@ -498,37 +498,11 @@ public class JDBCUtil {
     }
 
 
-    /**
-     * 根据数据类型获得值
-     * @param map
-     * @param key
-     * @param data_type
-     * @return
-     * @throws IOException
-     * @throws SQLException
-     */
-    private String getValueByType(Map<String, Object> map, String key, String data_type) throws IOException, SQLException {
-       /* if ("CLOB".equals(data_type)){
-           Clob columnClob = (Clob) map.get(key);
-            oracle.sql.CLOB columnClob=oracle.sql.CLOB.createTemporary(conn, false, oracle.sql.CLOB.DURATION_SESSION);
-            columnClob.open(oracle.sql.CLOB.MODE_READWRITE);
-            return StringUtils.ClobToString(columnClob);
-        }
-        if ("BLOB".equals(data_type)){
-          *//*  oracle.sql.BLOB columnBlob=oracle.sql.BLOB.createTemporary(conn, false, oracle.sql.CLOB.DURATION_SESSION);
-            columnBlob.open(oracle.sql.CLOB.MODE_READWRITE);*//*
-            BLOB columnBlob = (BLOB) map.get(key);
-            return StringUtils.BlobToString(columnBlob);
-        }*/
-        return null;
-    }
+
 
     private int specialDelete(List<Map<String,Object>> data, List<Map<String,Object>> uniqueList, String tbName) throws SQLException {
         String sql=null;
-        if (tbName.equals("EAF_ACM_R_USERORG")||tbName.equals("EAF_ACM_ORG") ){
-            sql =" delete from "+tbName+" where eaf_id = ? ";
-        }
-
+        sql =" delete from "+tbName+" where eaf_id = ? ";
         pst = conn.prepareStatement(sql);
 
         int i =0;
@@ -562,70 +536,36 @@ public class JDBCUtil {
     public int batchDelete(List<Map<String, Object>> data, List<Map<String, Object>> uniqueList, String tbName) throws Exception {
         long start =System.currentTimeMillis();
         if (tbName.equals("EAF_ACM_R_USERORG") || tbName.equals("EAF_ACM_ORG")){
-            specialDelete( data,  uniqueList,  tbName);
+           return specialDelete( data,  uniqueList,  tbName);
         }
         int len =0;
         try{
             String sql = " DELETE  FROM   " + tbName + " where 1=1 ";
-
             int[] result = null;//批量插入返回的数组
-
-            PreparedStatement pst = null;
-            boolean isNeedDel = true;
             if (uniqueList.size() ==0) return 0;
-
-            List<String> columnNames ;
-            if (uniqueList.size() == 1) {
-                boolean flag =null != ((uniqueList.get(0).get("IS_NEED_DEL")) );
-
-                columnNames =  (List<String>)uniqueList.get(0).get("COLUMN_NAME");
-                if (flag ){
-                    isNeedDel = (Boolean) uniqueList.get(0).get("IS_NEED_DEL") ;
-                }
-                if (!isNeedDel) return 0;
-                for (String columnName:  columnNames) {
-                    sql += " and " + columnName+" is not null and "+columnName + " =  ? ";
-                }
-
-                pst = conn.prepareStatement(sql);
-                int  m=0;
-                for (Map<String, Object> map : data) {
-                    m++;
-                    for (String columnName:  columnNames) {
-
-                        pst.setObject(m, map.get(columnName) + "");
+            List<String> columnNames = null ;
+            Map<Integer,String> indexCloumnMapper =new LinkedHashMap<>();
+            int k = 0;
+            List<String> cloumnList =null;
+            for (Map<String, Object> uniqueMap : uniqueList) {
+                k++;
+                cloumnList= (List<String>)uniqueMap.get("COLUMN_NAME") ;
+                for (String columnName: cloumnList) {
+                   if (k==1){
+                       int i =1;
+                       indexCloumnMapper.put(i,columnName);
+                       i++;
                     }
-
-                    pst.addBatch();
-                    if(m>0 && m%1000==0){
-                         pst.executeBatch();
-                        conn.commit();
-                        //清除批处理命令
-                        pst.clearBatch();
-                        //如果不想出错后，完全没保留数据，则可以每执行一次提交一次，但得保证数据不会重复
-                    }
+                sql += " and " + columnName+" is not null and "+columnName + " =  ? ";
                 }
-                result = pst.executeBatch();
-                conn.commit();
-                pst.clearBatch();
-            } else if ((uniqueList.size() > 1)) {
-                //sql 预编译
-                String columnName = null;//列名
-                int k = 0;
-                String[] arr = new String[uniqueList.size()];
-                for (Map<String, Object> uniqueMap : uniqueList) {
-                    columnName = uniqueMap.get("COLUMN_NAME") + "";
-                    sql += " and " + columnName+" is not null and "+columnName + " =  ? ";
-                    arr[k] = columnName;
-                    k++;
                 }
                 pst = conn.prepareStatement(sql);
                 //批量处理
                 int m =0;
                 for (Map<String, Object> map : data) {
                     m++;
-                    for (int i = 0; i < arr.length; i++) {
-                        pst.setObject(i + 1, map.get(arr[i]) + "");
+                    for (Integer index :indexCloumnMapper.keySet() ) {
+                        pst.setObject(index, map.get(indexCloumnMapper.get(index)));
                     }
                     pst.addBatch();
                     if(m>0 && m%1000==0){
@@ -637,11 +577,10 @@ public class JDBCUtil {
                     }
                 }
                 result = pst.executeBatch();
-            }
+           // }
             conn.commit();
             len =  result.length;
         }catch (Exception e){
-
             logger.error("删除失败"+e.getMessage());
         }finally {
             closeAll();
