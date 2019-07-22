@@ -397,7 +397,12 @@ public class JDBCUtil {
                    else if (("CLOB".equals(dataType))){
                         Clob clob = conn.createClob();
                         pst.setClob(mapperFlag, clob);
-                    }else{
+                    }
+                    else if (("BLOB".equals(dataType))){
+                        Blob blob= conn.createBlob();
+                        pst.setBlob(mapperFlag, blob);
+                    }
+                    else{
                         if (ma.get(k) == null){
                             pst.setObject(mapperFlag, null);
                         }else {
@@ -424,7 +429,7 @@ public class JDBCUtil {
             dat = null ;
             return returnMap;
         }catch (Exception e){
-            logger.error("JDBCUtil 503行："+e.getMessage()+" ");
+            logger.error("JDBCUtil 432行："+e.getMessage()+" ");
             logger.info("************************单条插入************************");
             conn.rollback();
             conn.setAutoCommit(false);
