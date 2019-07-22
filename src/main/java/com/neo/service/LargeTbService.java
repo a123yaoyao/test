@@ -69,6 +69,46 @@ public class LargeTbService{
         return  returnMap;
     }
 
+    private Map<String,Object> getConditionSql(String tbName) throws SQLException {
+        Map<String,Object> result =new HashMap<>();
+
+        List<String> list = null;
+        String sql =" where 1=1 ";
+        Map<Integer,String> indexCloumnMapper =new LinkedHashMap<>();
+        JSONArray constraint = JSONArray.parseArray(uniqueConstraint);
+        JSONObject jsonObject =null;
+
+        for (int i = 0; i <constraint.size() ; i++) {
+            jsonObject = (JSONObject) constraint.get(i);
+            if (tbName.equals(jsonObject.get("table")+"")){
+                list = (List<String>)jsonObject.get("column");
+                int mk=1;
+                for (String columnName: list) {
+                    indexCloumnMapper.put(mk,columnName);
+                    mk++;
+                    sql += " and " + columnName+" is not null and "+columnName + " =  ? ";
+                }
+                result.put("tempSql",sql);
+                result.put("mapper",indexCloumnMapper);
+            }
+        }
+
+        if (null!= list)return result;
+        if (null == list){//判断该表是否存在eaf_Id
+            int i = hasEAFId(tbName);
+            list =new ArrayList<>();
+            Map<String,Object> map =new HashMap<>();
+            if (i==1) {
+                List<String> columns = new ArrayList<>();
+                sql += " and EAF_ID is not null and EAF_ID =  ? ";
+                indexCloumnMapper.put(1,"EAF_ID");
+            }
+        }
+        result.put("tempSql",sql);
+        result.put("mapper",indexCloumnMapper);
+        return result;
+    }
+
     /**
      * 插入数据
      * @param threads 线程数
@@ -86,9 +126,10 @@ public class LargeTbService{
         if (threads==1){
             String sql ="select * from "+tbName;
             List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(sql,new Object[][]{});
-            returnMap =   new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStructor);
+            //删除重复的数据
+            Map<String,Object> conditionMap =   getConditionSql( tbName);
+            returnMap =   new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStructor,conditionMap);
         }else{
-
             int groupSize =getGroupSize(dataCount);
             final BlockingQueue<Future<Map<String,Object>>> queue = new LinkedBlockingQueue<>();
             final CountDownLatch  endLock = new CountDownLatch(threads); //结束门
@@ -115,9 +156,65 @@ public class LargeTbService{
     }
 
 
+    /**
+     * 批量删除重复的数据
+     * @param data
+     * @return
+     * @throws Exception
+     */
+    private int batchDelete(List<Map<String, Object>> data,String tbName) throws Exception {
+        JDBCUtil masterDbUtil =new JDBCUtil(masterDataSource);
+        //获得列表中的唯一键
+        List<Map<String, Object>> uniqueList = getUniqueConstriant(tbName);
+        //批量删除重复数据
+        return new JDBCUtil(masterDataSource).batchDelete(data, uniqueList, tbName);
+    }
 
+    /**
+     * 获得唯一约束
+     */
+    private List<Map<String, Object>> getUniqueConstriant(String tbName) throws Exception {
+        List<Map<String, Object>> list = null;
+        JSONArray constraint = JSONArray.parseArray(uniqueConstraint);
+        JSONObject jsonObject =null;
+        for (int i = 0; i <constraint.size() ; i++) {
+            jsonObject = (JSONObject) constraint.get(i);
+            if (tbName.equals(jsonObject.get("table")+"")){
+                list = new ArrayList<>();
+                Map<String,Object> map =new HashMap<>();
+                map.put("COLUMN_NAME",(List<String>)jsonObject.get("column"));
+                map.put("IS_NEED_DEL",jsonObject.get("isNeedDel"));
+                list.add(map);
+                break;
+            }
+        }
+        if (null!= list)return list;
+        if (null == list){//判断该表是否存在eaf_Id
+            int i = hasEAFId(tbName);
+            list =new ArrayList<>();
+            Map<String,Object> map =new HashMap<>();
+            if (i==1) {
+                List<String> columns = new ArrayList<>();
+                columns.add("EAF_ID");
+                map.put("COLUMN_NAME",columns);
+                list.add(map);
+            }
+        }
 
+        for (Map<String,Object> map:list) {
+            map.put("IS_NEED_DEL",true);
+        }
+        return list;
+    }
 
+    private int hasEAFId(String tbName) throws SQLException {
+        String  sql="select count(0) as TABLE_NUMS  from user_tab_columns   \n" +
+                "where UPPER(column_name)='EAF_ID' AND TABLE_NAME = '"+tbName+"'";
+        List<Map<String,Object>> list =new JDBCUtil(masterDataSource).excuteQuery(sql,new Object[][]{});
+        String count =list.get(0).get("TABLE_NUMS")+"";
+        if ("1".equals(count) ) return 1;
+        else return 0;
+    }
 
     /**
      * 创建表或修改添加列

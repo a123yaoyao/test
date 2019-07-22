@@ -9,10 +9,7 @@ import org.apache.log4j.Logger;
 
 import java.math.RoundingMode;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -93,13 +90,13 @@ public class TaskTbMerge  implements Callable<Map<String,Object>> {
                 String  querySql = SqlTools.queryDataPager(tbName,startIndex,maxIndex);
                 List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
                 //删除重复的数据
+                Map<String,Object> conditionMap =   getConditionSql();
 
-                     batchDelete(list);
 
                 //获取当前主库表结构
                 List<Map<String, Object>> masterTbStruct = selectTableStructureByDbAndTb();
                 //插入数据
-                return new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStruct);
+                return new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStruct,conditionMap);
             }else{
                 int nums2 =nums1.get();
                 int newSize =5000;
@@ -125,12 +122,13 @@ public class TaskTbMerge  implements Callable<Map<String,Object>> {
                     List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
                     //删除重复的数据
 
-                        batchDelete(list);
+                    //删除重复的数据
+                    Map<String,Object> conditionMap =   getConditionSql();
 
                     //获取当前主库表结构
                     List<Map<String, Object>> masterTbStruct = selectTableStructureByDbAndTb();
                     //插入数据
-                    returnMap = new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStruct);
+                    returnMap = new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStruct,conditionMap);
                      count1= resultMap.get("INSERT_COUNT")==null?"0":resultMap.get("INSERT_COUNT")+"";
                      count2= returnMap.get("INSERT_COUNT")==null?"0":returnMap.get("INSERT_COUNT")+"";
                      resultMap.put("INSERT_COUNT",IntMath.checkedAdd(Integer.valueOf(count1), Integer.valueOf(count2) ));
@@ -146,6 +144,47 @@ public class TaskTbMerge  implements Callable<Map<String,Object>> {
         }
       return returnMap;
 
+    }
+
+    private Map<String,Object> getConditionSql() throws SQLException {
+      Map<String,Object> result =new HashMap<>();
+
+      List<String> list = null;
+      String sql =" where NOT EXISTS  ( select 1 from  "+tbName+" WHERE 1=1 ";
+        Map<Integer,String> indexCloumnMapper =new LinkedHashMap<>();
+        JSONArray constraint = JSONArray.parseArray(uniqueConstraint);
+        JSONObject jsonObject =null;
+
+        for (int i = 0; i <constraint.size() ; i++) {
+            jsonObject = (JSONObject) constraint.get(i);
+            if (tbName.equals(jsonObject.get("table")+"")){
+                list = (List<String>)jsonObject.get("column");
+                int mk=1;
+                for (String columnName: list) {
+                     indexCloumnMapper.put(mk,columnName);
+                     mk++;
+                     sql += " and " + columnName+" is not null and "+columnName + " =  ? ";
+                }
+                sql +=" )";
+                result.put("tempSql",sql);
+                result.put("mapper",indexCloumnMapper);
+            }
+        }
+
+        if (null!= list)return result;
+        if (null == list){//判断该表是否存在eaf_Id
+            int i = hasEAFId();
+            list =new ArrayList<>();
+            Map<String,Object> map =new HashMap<>();
+            if (i==1) {
+                List<String> columns = new ArrayList<>();
+                sql += " and EAF_ID is not null and EAF_ID =  ? )";
+                indexCloumnMapper.put(1,"EAF_ID");
+            }
+        }
+        result.put("tempSql",sql);
+        result.put("mapper",indexCloumnMapper);
+        return result;
     }
 
     private List<Map<String,Object>> selectTableStructureByDbAndTb() throws SQLException {
@@ -201,7 +240,6 @@ public class TaskTbMerge  implements Callable<Map<String,Object>> {
                 list = new ArrayList<>();
                 Map<String,Object> map =new HashMap<>();
                 map.put("COLUMN_NAME",(List<String>)jsonObject.get("column"));
-                map.put("IS_NEED_DEL",jsonObject.get("isNeedDel"));
                 list.add(map);
                 break;
             }
@@ -217,10 +255,6 @@ public class TaskTbMerge  implements Callable<Map<String,Object>> {
                 map.put("COLUMN_NAME",columns);
                 list.add(map);
             }
-        }
-
-        for (Map<String,Object> map:list) {
-            map.put("IS_NEED_DEL",true);
         }
         return list;
     }

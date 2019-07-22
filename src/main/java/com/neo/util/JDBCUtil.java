@@ -265,15 +265,16 @@ public class JDBCUtil {
 
 
 
-    public  Map<String,Object>   batchInsertJsonArry(String tbName, List<Map<String, Object>> newData, List<Map<String, Object>> tbstruct) throws Exception{
+    public  Map<String,Object>   batchInsertJsonArry(String tbName, List<Map<String, Object>> newData, List<Map<String, Object>> tbstruct,  Map<String,Object> conditionMap) throws Exception{
         long start = System.currentTimeMillis();
         Map<String,Object> returnMap =new HashMap<>();
         String  sql= null;
         try {
-            sql =  getInsertSql( tbName,  newData);
+            sql =  getInsertSql( tbName,  newData) + conditionMap.get("tempSql");
+
             conn.setAutoCommit(false);
             pst = conn.prepareStatement(sql);
-            returnMap =    insertBatch(tbName , newData, pst,tbstruct);
+            returnMap =    insertBatch(tbName , newData, pst,tbstruct,conditionMap);
             long end = System.currentTimeMillis();
             logger.info(tbName+"表批量插入了:"+returnMap.get("INSERT_COUNT")+"条数据 需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
             newData =null;
@@ -344,20 +345,25 @@ public class JDBCUtil {
             sql .append(mm.getKey()+",") ;
         }
         sql.deleteCharAt(sql.length()-1);
-        sql .append(" ) values (");
+        sql .append(" ) ");
+
+        //sql .append(" values (");
+        sql.append(" SELECT ");
 
         for (int i=0;i<m.size();i++) {
             sql .append(" ?,");
         }
         sql.deleteCharAt(sql.length()-1);
-        sql .append(" ) ");
+        sql.append("   FROM DUAL ");
+       // sql .append(" ) ");
         return sql.toString();
     }
 
 
-    private Map<String,Object> insertBatch(String tbName, List<Map<String, Object>> dat,PreparedStatement pst,List<Map<String, Object>> tbstruct) throws SQLException, IOException {
+    private Map<String,Object> insertBatch(String tbName, List<Map<String, Object>> dat,PreparedStatement pst,List<Map<String, Object>> tbstruct,Map<String, Object> conditionMap) throws SQLException, IOException {
         /*******************************变量说明*********************************************************************/
         Map<String,Object> returnMap =new HashMap<>();//返回信息
+        Map<Integer,String > conditionMapper = (Map<Integer, String>) conditionMap.get("mapper");
         String errMsg = "" ;//错误信息
         int affectRows =0 ; //数据插入条数
         conn.setAutoCommit(false);
@@ -384,7 +390,7 @@ public class JDBCUtil {
                 ma = (Map<String, Object>) dat.get(i);
                 int j = 0;
                 for (String k : ma.keySet()) {
-                    dataType   =   structureMap.get(k);
+                    dataType   = structureMap.get(k);
                     mapperFlag =  nameIndexMapper.get(k);
                     if ("DATE".equals(dataType)){
                          if (ma.get(k) == null){
@@ -411,6 +417,11 @@ public class JDBCUtil {
                         }
                     }
                 }
+                for (Integer k : conditionMapper.keySet()) {
+                    pst.setObject(k+ma.size(), ma.get(conditionMapper.get(k)));
+                }
+
+
                 pst.addBatch();
 
                 if (i > 0 && i % 1000 == 0) {
