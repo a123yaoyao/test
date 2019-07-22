@@ -103,7 +103,6 @@ public class TaskTbMerge  implements Callable<Map<String,Object>> {
                 int newSize =5000;
                 int startIndex2= startIndex1.get();
                 int maxIndex2 =maxIndex1.get();
-                logger.info(maxIndex2);
                 int cycleLenth =  IntMath.mod(nums,newSize) ==0 ? IntMath.divide(nums, newSize, RoundingMode.DOWN)
                         : IntMath.checkedAdd(IntMath.divide(nums, newSize, RoundingMode.DOWN), 1);
                 String count1= "";
@@ -122,9 +121,7 @@ public class TaskTbMerge  implements Callable<Map<String,Object>> {
                     String  querySql = SqlTools.queryDataPager(tbName,start1,end1);
                     logger.info("当前线程名称："+Thread.currentThread().getName()+" 执行sql:"+querySql);
                     List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
-                    //logger.info("list"+list.size());
                     //删除重复的数据
-                    //int i=
                     batchDelete(list);
                     //获取当前主库表结构
                     List<Map<String, Object>> masterTbStruct = selectTableStructureByDbAndTb();
@@ -136,8 +133,6 @@ public class TaskTbMerge  implements Callable<Map<String,Object>> {
                 }
 
             }
-            //long end = System.currentTimeMillis();
-            //return resultMap;
         }catch (Exception e){
             e.printStackTrace();
             logger.error(e.getMessage());

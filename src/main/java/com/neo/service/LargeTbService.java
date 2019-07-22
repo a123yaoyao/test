@@ -92,7 +92,7 @@ public class LargeTbService{
         if (threads==1){
             String sql ="select * from "+tbName;
             List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(sql,new Object[][]{});
-            returnMap =   new JDBCUtil(masterDataSource).batchInsertJsonArry1(tbName,list,masterTbStructor);
+            returnMap =   new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStructor);
         }else{
             int groupSize =getGroupSize(dataCount);
             final BlockingQueue<Future<Map<String,Object>>> queue = new LinkedBlockingQueue<>();
