@@ -314,17 +314,17 @@ public class DbUtil {
 
     }
 
-    public Map<String,Object> batchInsertJsonArry(String tbName, List<Map<String, Object>> newData,List<Map<String, Object>> tbstruct) throws Exception{
+    public Map<String,Object> batchInsertJsonArry(String tbName, List<Map<String, Object>> newData,List<Map<String, Object>> tbstruct, Map<String,Object> conditionMap) throws Exception{
         Map<String,Object> returnMap =new HashMap<>();
         long start = System.currentTimeMillis();
         String  sql= null;
         int[] result= null;
         PreparedStatement pst = null;
         try {
-            sql =  getInsertSql( tbName,  newData);
+            sql =  getInsertSql( tbName,  newData)+ conditionMap.get("tempSql");;
             conn.setAutoCommit(false);
             pst = conn.prepareStatement(sql);
-            result =  insertBatch(tbName , newData, pst,tbstruct);
+            result =  insertBatch(tbName , newData, pst,tbstruct,conditionMap);
             long end = System.currentTimeMillis();
             logger.info("批量插入了:"+newData.size()+"条数据 需要时间:"+(end - start)/1000+"s"); //批量插入需要时间:
             int len= newData.size() ;
@@ -335,15 +335,8 @@ public class DbUtil {
         } catch (Exception e) {
             returnMap.put("INSERT_COUNT","0");
             returnMap.put("MESSAGE",e.getMessage());
-
            logger.error(sql.toString()+e.getMessage());
-           /*if (e.getMessage().contains("ORA-00001")){
-               System.out.println("开始单条插入......................................................................................");
-               return odinaryInsert(tbName,newData,tbstruct);
-           }else{
-               returnMap.put("INSERT_COUNT","0");
-               returnMap.put("MESSAGE",e.getMessage());
-           }*/
+
         }
         return returnMap;
     }
@@ -407,17 +400,20 @@ public class DbUtil {
             sql .append(mm.getKey()+",") ;
         }
         sql.deleteCharAt(sql.length()-1);
-        sql .append(" ) values (");
+        sql .append(" ) ");
+        //sql .append(" values (");
+        sql.append(" SELECT ");
 
         for (int i=0;i<m.size();i++) {
             sql .append(" ?,");
         }
         sql.deleteCharAt(sql.length()-1);
-        sql .append(" ) ");
+        sql.append("   FROM DUAL ");
+        // sql .append(" ) ");
         return sql.toString();
     }
 
-    private int[] insertBatch(String tbName, List<Map<String, Object>> dat,PreparedStatement pst,List<Map<String, Object>> tbstruct) throws SQLException, IOException {
+    private int[] insertBatch(String tbName, List<Map<String, Object>> dat,PreparedStatement pst,List<Map<String, Object>> tbstruct,Map<String, Object> conditionMap) throws SQLException, IOException {
         conn.setAutoCommit(false);
         Map<String,Object> m =(Map<String,Object>)dat.get(0);
         int[] ik =null;
@@ -429,6 +425,8 @@ public class DbUtil {
         java.sql.Timestamp timestampValue = null;
         boolean flag ;
         Map<String, String> structureMap =new LinkedHashMap<>();
+        Map<Integer,String > conditionMapper = (Map<Integer, String>) conditionMap.get("mapper");
+
         for (Map<String, Object> structure:tbstruct) {
             cloumnName =structure.get("COLUMN_NAME")+"";
             dataType =structure.get("DATA_TYPE")+"";
@@ -456,11 +454,15 @@ public class DbUtil {
                 }
                 if (flag) {
                     pst.setTimestamp(j+1,timestampValue);
-                    //pst.setDate(j+1,dateValue);
                 }
                 else pst.setString(j+1,value);
                 j++;
             }
+
+            for (Integer k : conditionMapper.keySet()) {
+                pst.setObject(k+ma.size(), ma.get(conditionMapper.get(k)));
+            }
+
             pst.addBatch();
 
             if(i>0 && i%1000==0){

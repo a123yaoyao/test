@@ -120,9 +120,8 @@ public class TaskTbMerge  implements Callable<Map<String,Object>> {
                     String  querySql = SqlTools.queryDataPager(tbName,start1,end1);
                     logger.info("当前线程名称："+Thread.currentThread().getName()+" 执行sql:"+querySql);
                     List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
-                    //删除重复的数据
 
-                    //删除重复的数据
+                    //
                     Map<String,Object> conditionMap =   getConditionSql();
 
                     //获取当前主库表结构

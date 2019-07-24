@@ -156,19 +156,19 @@ public class LargeTbService{
     }
 
 
-    /**
+   /* *//**
      * 批量删除重复的数据
      * @param data
      * @return
      * @throws Exception
-     */
+     *//*
     private int batchDelete(List<Map<String, Object>> data,String tbName) throws Exception {
         JDBCUtil masterDbUtil =new JDBCUtil(masterDataSource);
         //获得列表中的唯一键
         List<Map<String, Object>> uniqueList = getUniqueConstriant(tbName);
         //批量删除重复数据
         return new JDBCUtil(masterDataSource).batchDelete(data, uniqueList, tbName);
-    }
+    }*/
 
     /**
      * 获得唯一约束
