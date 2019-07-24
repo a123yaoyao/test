@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.io.IOException;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
 
@@ -151,5 +152,7 @@ public  class SqlTools {
         if ("1".equals(count) ) return 1;
         else return 0;
     }
+
+
 
 }

@@ -53,42 +53,17 @@ public class TbService {
     @Value("${tbPrjIds}")
     public String tbPrjId;
 
-    @Value("${threadNum}")
-    public String threadNum;
 
 
 
 
-    int getThreads(int dataCount){
-        if (dataCount>1000 && dataCount<=10000){
-            return dataCount%2000==0? dataCount/2000:dataCount/2000+1;
-        }
-        if (dataCount>10000 && dataCount<=100000){
-            return dataCount%5000==0? dataCount/5000:dataCount/5000+1;
-        }
-        if (dataCount>100000 && dataCount<=1000000){
-            return dataCount%10000==0? dataCount/10000:dataCount/10000+1;
-        }
-        if (dataCount>1000000 && dataCount<=10000000){
-            return dataCount%10000==0? dataCount/10000:dataCount/10000+1;
-        }
-        return 1;
+    int getThreads(){
+        return Runtime.getRuntime().availableProcessors();
     }
 
     int getGroupSize(int dataCount){
-        if (dataCount>1000 && dataCount<=10000){
-            return 2000;
-        }
-        if (dataCount>10000 && dataCount<=100000){
-            return 5000;
-        }
-        if (dataCount>100000 && dataCount<=1000000){
-            return 10000;
-        }
-        if (dataCount>1000000 && dataCount<=10000000){
-            return 10000;
-        }
-        return 1000;
+      int threads = Runtime.getRuntime().availableProcessors();
+      return dataCount% threads==0?dataCount/threads:dataCount/threads+1;
     }
 
     /**
@@ -123,8 +98,6 @@ public class TbService {
 
         int total =  db.getCount(totalSql,new Object[][]{});
         String newSql =" select * from ( select a.*,rownum rn from (" +sql +" )a where rownum < "+end+") where rn> "+start;
-
-
         tbCollection = db.excuteQuery(newSql,new Object[][]{});
         map.put("rows",tbCollection);
         map.put("total",total);
@@ -132,69 +105,7 @@ public class TbService {
     }
 
 
-    private Callable<List<Map<String, Object>>> read2List(final int i, final int nums, final DbUtil salverDbUtil,final String dbName,
-                                                          final String tbName,final DbUtil  masterDbUtil,CountDownLatch countDownLatch ) {
-        Callable<List<Map<String, Object>>> callable = new Callable<List<Map<String, Object>>>() {
-            public List<Map<String, Object>> call()  {
-                try{
-                int startIndex = i * nums;
-                int maxIndex = startIndex + nums;
 
-                List<Map<String, Object>> list = selectAllByDbAndTb(dbName, tbName, salverDbUtil,startIndex,maxIndex);
-                //查询被导入数据库的表结构
-                //List<Map<String, Object>> tb = selectTableStructureByDbAndTb(dbName, tbName,salverDbUtil);
-                //判断该表是否使用批处理
-               // boolean isUseBatch = checTableIsUseBatch(tbName);
-               // masterDbUtil. insert(tbName,list,tb,isUseBatch);
-                return list;
-                }
-                catch (Exception e){
-                    logger.error(e.getMessage());
-                    return new ArrayList<>();
-                }finally {
-                    countDownLatch.countDown();
-
-                }
-            }
-        };
-        return callable;
-
-    }
-
-
-    List<Map<String, Object>> getDataByMulitThreads(String dbName ,String tbName,String masterDataSource ,int groupSize,
-                          Connection masterConn,Connection slaverConn) throws SQLException, InterruptedException, ExecutionException {
-        String  sql =" select count(1) from "+tbName ;
-        if ( null == slaverConn || slaverConn.isClosed()) slaverConn = DataSourceHelper.GetConnection(dbName);
-        if ( null == masterConn||  masterConn.isClosed()) masterConn = DataSourceHelper.GetConnection(masterDataSource);
-        DbUtil salverDbUtil =new DbUtil(slaverConn);
-        DbUtil masterDbUtil =new DbUtil(masterConn);
-        int count = salverDbUtil.getCount(sql,new Object[][]{});
-        int thrednum =  getThreads(count);
-        long queryStart =System.currentTimeMillis();
-
-        List<Map<String, Object>> data = new ArrayList<Map<String, Object>>();
-        ExecutorService service = Executors.newFixedThreadPool(thrednum);
-        BlockingQueue<Future<List<Map<String, Object>>>> queue = new LinkedBlockingQueue<Future<List<Map<String, Object>>>>();
-
-        groupSize = getGroupSize(count);
-        final CountDownLatch  endLock = new CountDownLatch(thrednum); //结束门
-        for (int i = 0; i < thrednum; i++) {
-            if (slaverConn ==null || slaverConn.isClosed())slaverConn = DataSourceHelper.GetConnection(dbName);
-            salverDbUtil = new DbUtil(slaverConn);
-            Future<List<Map<String, Object>>> future = service.submit(read2List(i, groupSize, salverDbUtil,dbName,tbName,masterDbUtil,endLock));
-            queue.add(future);
-        }
-        int queueSize = queue.size();
-        for (int i = 0; i < queueSize; i++) {
-            List<Map<String, Object>> list1= queue.take().get();
-            data.addAll(list1);
-        }
-        service.shutdown();
-        long queryEnd =System.currentTimeMillis();
-        logger.info("查询"+dbName+"库 中表名为"+tbName+"的所有数据花费时间为"+(queryEnd-queryStart)/1000+"秒");
-        return data;
-    }
 
 
 
@@ -215,16 +126,13 @@ public class TbService {
         Map<String,Object> returnMap =new HashMap<>();
         returnMap.put("INSERT_COUNT","0");
         returnMap.put("MESSAGE","执行成功");
-
-
-
         DbUtil masterDbUtil =new DbUtil(masterConn);
         DbUtil salverDbUtil =new DbUtil(slaverConn);
         int insertCount =0;
         int count =0;
         int listCount = salverDbUtil.getCount(" select count(1) from "+tbName,new Object[][]{});
-        //多线程数量
-        int threads = (listCount %  groupSize ==0)? listCount / groupSize: (listCount /groupSize)+1 ;
+        //获得可用的多线程数量
+        int threads = getThreads();
         //表结构
         List<Map<String,Object>> tableStructure = null;
         Map<String,Object> param =new HashMap<>();
@@ -298,7 +206,7 @@ public class TbService {
 
         long queryStart =System.currentTimeMillis();
         //查询某个库下的某个表的所有数据
-        List<Map<String, Object>> data =  getDataByMulitThreads( dbName , tbName, masterDataSource,   groupSize, masterConn, slaverConn);
+        List<Map<String, Object>> data = salverDbUtil.excuteQuery("select * from "+tbName,new Object[][]{});
         if (data.size()==0){
           return returnMap;
         }
@@ -306,22 +214,18 @@ public class TbService {
         Map<String,Object> m =(Map<String,Object>)data.get(0);
         long queryEnd =System.currentTimeMillis();
         logger.info("查询"+dbName+"库 中表名为"+tbName+"的所有数据花费时间为"+(queryEnd-queryStart)/1000+"秒");
-        //对数据进行切分
-        int cutSize = groupSize ;//每个线程处理的数据量
-        List<List<Map<String, Object>>> newData = CollectionUtil.splitList(data, cutSize);
-        //批量删除重复的数据
-        int delCount = batchDelete(paramsMap, tbName, data, masterDbUtil,salverDbUtil);
+
         //判断该表是否使用批处理
-      //  boolean isUseBatch = checTableIsUseBatch(tbName);
         if (threads == 1 ){ //不开启多线程
-            for (List<Map<String, Object>> dat : newData) {
-                insertRecord(masterDbUtil,tbName,dat,dbName);//插入记录
-                returnMap = masterDbUtil.batchInsertJsonArry(tbName,dat,tb);
-            }
+                insertRecord(masterDbUtil,tbName,data,dbName);//插入记录
+                Map<String,Object> conditionMap = SqlTools.getConditionSql(tbName,uniqueConstraint,masterDataSource);
+                returnMap = masterDbUtil.batchInsertJsonArry(tbName,data,tb,conditionMap);
         }else{
+            //对数据进行切分
+            int cutSize = getGroupSize(listCount) ;//每个线程处理的数据量
+            List<List<Map<String, Object>>> newData = CollectionUtil.splitList(data, cutSize);
             final BlockingQueue<Future<Map<String ,Object>>> queue = new LinkedBlockingQueue<>();
             final CountDownLatch  endLock = new CountDownLatch(threads); //结束门
-            //List<Future<Integer>> results = new ArrayList<Future<Integer>>();
             final ExecutorService exec = Executors.newFixedThreadPool(threads);
             for (List<Map<String, Object>> dat : newData ) {
                 Future<Map<String ,Object>> future=   exec.submit(new Callable<Map<String ,Object>>(){
@@ -330,7 +234,8 @@ public class TbService {
                         try {
 
                             insertRecord(masterDbUtil,tbName,dat,dbName);//插入记录
-                            Map<String ,Object>  returnMap =  masterDbUtil. batchInsertJsonArry(tbName,dat,tb);
+                            Map<String,Object> conditionMap = SqlTools.getConditionSql(tbName,uniqueConstraint,masterDataSource);
+                            Map<String ,Object>  returnMap =  masterDbUtil. batchInsertJsonArry(tbName,dat,tb,conditionMap);
                             return  returnMap ;
                         }catch(Exception e) {
                             logger.error("数据同步 exception!",e);
