@@ -76,23 +76,12 @@ public class TaskTbMerge  implements Callable<Map<String,Object>> {
         Map<String,Object> resultMap = new HashMap<>();
         Map<String,Object> returnMap = null;
         try{
-          /*  String  querySql = SqlTools.queryDataPager(tbName,startIndex,maxIndex);
-            List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
-            returnMap =new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStruct);
-            list =null;
-            System.gc();
-            return returnMap;*/
-
-
-            //JDBCUtil salver  = new JDBCUtil(dbName);
             //查询从库的数据
-            if (nums <=3000){
+            if (nums <=5000){
                 String  querySql = SqlTools.queryDataPager(tbName,startIndex,maxIndex);
                 List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
-                //删除重复的数据
+                //查询条件
                 Map<String,Object> conditionMap =   getConditionSql();
-
-
                 //获取当前主库表结构
                 List<Map<String, Object>> masterTbStruct = selectTableStructureByDbAndTb();
                 //插入数据
@@ -104,10 +93,12 @@ public class TaskTbMerge  implements Callable<Map<String,Object>> {
                 int maxIndex2 =maxIndex1.get();
                 int cycleLenth =  IntMath.mod(nums,newSize) ==0 ? IntMath.divide(nums, newSize, RoundingMode.DOWN)
                         : IntMath.checkedAdd(IntMath.divide(nums, newSize, RoundingMode.DOWN), 1);
+                System.out.println("cycleLenth："+ (nums%newSize==0?nums/newSize:nums/newSize+1));
                 String count1= "";
                 String count2= "";
                 for (int i = 0; i <cycleLenth ; i++) {
                     int start1 = IntMath.checkedAdd(startIndex, IntMath.checkedMultiply(i,newSize));
+
                     int end1 =0;
                     if (i!=cycleLenth-1){
                         end1 =  IntMath.checkedAdd(start1,newSize);
@@ -116,18 +107,26 @@ public class TaskTbMerge  implements Callable<Map<String,Object>> {
                         IntMath.checkedAdd(start1,newSize);
                     }
 
-                    logger.info("起始："+start1+" end："+end1);
                     String  querySql = SqlTools.queryDataPager(tbName,start1,end1);
+
                     logger.info("当前线程名称："+Thread.currentThread().getName()+" 执行sql:"+querySql);
+                    long start  =System.currentTimeMillis();
                     List<Map<String,Object>> list = new JDBCUtil(dbName).excuteQuery(querySql,new Object[][]{});
 
+                    long end   = System.currentTimeMillis();
+                    logger.info("query "+tbName+" cost "+ ((end-start)/1000)+"s");
                     //
                     Map<String,Object> conditionMap =   getConditionSql();
 
                     //获取当前主库表结构
                     List<Map<String, Object>> masterTbStruct = selectTableStructureByDbAndTb();
                     //插入数据
-                    returnMap = new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStruct,conditionMap);
+                    long start2  =System.currentTimeMillis();
+
+                        returnMap = new JDBCUtil(masterDataSource).batchInsertJsonArry(tbName,list,masterTbStruct,conditionMap);
+                        long end2  =System.currentTimeMillis();
+                        logger.info("insert "+tbName+" cost "+ ((end2-start2)/1000)+"s");
+
                      count1= resultMap.get("INSERT_COUNT")==null?"0":resultMap.get("INSERT_COUNT")+"";
                      count2= returnMap.get("INSERT_COUNT")==null?"0":returnMap.get("INSERT_COUNT")+"";
                      resultMap.put("INSERT_COUNT",IntMath.checkedAdd(Integer.valueOf(count1), Integer.valueOf(count2) ));

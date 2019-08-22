@@ -129,12 +129,14 @@ public class TbController  {
                 insertCountRecord += count;//记录 每张表的数据条数的和
                 resultMap = new HashMap();
                 resultMap.put("TABLE_NAME", tbName);
-                if (count<8000){
+                insertMessageMap =tbService.mergeData(dbName, tbName, masterDataSource, list, Integer.valueOf(groupSize),masterConn,slaverConn);
+
+               /* if (count<8000){
                     insertMessageMap =tbService.mergeData(dbName, tbName, masterDataSource, list, Integer.valueOf(groupSize),masterConn,slaverConn);
 
                 }else{
                     insertMessageMap = largeTbService. mergeData( count, tbName, dbName);
-                }
+                }*/
                 if (tbName.equals("EAF_DMM_METAATTR_M")){ //如果是模型属性类添加数据 同时要给资源表添加数据
                     tbService.mergeData(dbName, "EAF_DMM_RESOURCE", masterDataSource, list, Integer.valueOf(groupSize),masterConn,slaverConn);
 

@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.*;
@@ -66,6 +67,70 @@ public class TbService {
       return dataCount% threads==0?dataCount/threads:dataCount/threads+1;
     }
 
+    private Callable<List<Map<String, Object>>> read2List(final int i, final int nums, final DbUtil salverDbUtil,final String dbName,
+                                                          final String tbName,final DbUtil  masterDbUtil,CountDownLatch countDownLatch ) {
+        Callable<List<Map<String, Object>>> callable = new Callable<List<Map<String, Object>>>() {
+            public List<Map<String, Object>> call()  {
+                try{
+                    int startIndex = i * nums;
+                    int maxIndex = startIndex + nums;
+
+                    List<Map<String, Object>> list = selectAllByDbAndTb(dbName, tbName, salverDbUtil,startIndex,maxIndex);
+                    //查询被导入数据库的表结构
+                    //List<Map<String, Object>> tb = selectTableStructureByDbAndTb(dbName, tbName,salverDbUtil);
+                    //判断该表是否使用批处理
+                    // boolean isUseBatch = checTableIsUseBatch(tbName);
+                    // masterDbUtil. insert(tbName,list,tb,isUseBatch);
+                    return list;
+                }
+                catch (Exception e){
+                    logger.error(e.getMessage());
+                    return new ArrayList<>();
+                }finally {
+                    countDownLatch.countDown();
+
+                }
+            }
+        };
+        return callable;
+
+    }
+
+    List<Map<String, Object>> getDataByMulitThreads(String dbName ,String tbName,String masterDataSource ,int groupSize,
+                                                    Connection masterConn,Connection slaverConn) throws SQLException, InterruptedException, ExecutionException {
+        String  sql =" select count(1) from "+tbName ;
+        if ( null == slaverConn || slaverConn.isClosed()) slaverConn = DataSourceHelper.GetConnection(dbName);
+        if ( null == masterConn||  masterConn.isClosed()) masterConn = DataSourceHelper.GetConnection(masterDataSource);
+        DbUtil salverDbUtil =new DbUtil(slaverConn);
+        DbUtil masterDbUtil =new DbUtil(masterConn);
+        int count = salverDbUtil.getCount(sql,new Object[][]{});
+        int thrednum =  getThreads();
+        long queryStart =System.currentTimeMillis();
+
+        List<Map<String, Object>> data = new ArrayList<Map<String, Object>>();
+        ExecutorService service = Executors.newFixedThreadPool(thrednum);
+        BlockingQueue<Future<List<Map<String, Object>>>> queue = new LinkedBlockingQueue<Future<List<Map<String, Object>>>>();
+
+        groupSize = getGroupSize(count);
+        final CountDownLatch  endLock = new CountDownLatch(thrednum); //结束门
+        for (int i = 0; i < thrednum; i++) {
+            if (slaverConn ==null || slaverConn.isClosed())slaverConn = DataSourceHelper.GetConnection(dbName);
+            salverDbUtil = new DbUtil(slaverConn);
+            Future<List<Map<String, Object>>> future = service.submit(read2List(i, groupSize, salverDbUtil,dbName,tbName,masterDbUtil,endLock));
+            queue.add(future);
+        }
+        int queueSize = queue.size();
+        for (int i = 0; i < queueSize; i++) {
+            List<Map<String, Object>> list1= queue.take().get();
+            data.addAll(list1);
+        }
+        service.shutdown();
+        long queryEnd =System.currentTimeMillis();
+        logger.info("查询"+dbName+"库 中表名为"+tbName+"的所有数据花费时间为"+(queryEnd-queryStart)/1000+"秒");
+        return data;
+    }
+
+
     /**
      *
      * @param dbName
@@ -89,6 +154,34 @@ public class TbService {
         String sql =" select t.table_name, count_rows(t.table_name)  num_rows,\n" +
                 "            ( select count(*) from user_tab_columns where table_name= t.table_name ) num_columns from user_tables t\n where 1=1 " ;
 
+        int existCount =0;
+        try {
+            existCount =     checkTable("ALL_TB_TOTAL",db,null);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if (existCount ==0 ){
+           List<Map<String,Object>> listTotal =  db.excuteQuery(sql,new Object[][]{});
+           String createSql  = "create table ALL_TB_TOTAL\n" +
+                   "(\n" +
+                   "  TABLE_NAME  VARCHAR2(50),\n" +
+                   "  NUM_ROWS    INTEGER,\n" +
+                   "  NUM_COLUMNS INTEGER\n" +
+                   ")";
+            db.executeUpdate(createSql,new Object[][]{});
+            String insertSql = " insert into ALL_TB_TOTAL(TABLE_NAME,NUM_ROWS,NUM_COLUMNS) values (?,?,?)";
+            PreparedStatement pst = connection.prepareStatement(sql);
+            for (Map<String,Object> dataMap :listTotal) {
+                pst.setObject(1,dataMap.get("TABLE_NAME"));
+                pst.setObject(2,dataMap.get("NUM_ROWS"));
+                pst.setObject(3,dataMap.get("NUM_COLUMNS"));
+                pst.addBatch();
+            }
+            pst.executeBatch();
+            connection.close();
+            pst.close();
+        }
+        if (existCount==1) sql ="select t.table_name,t.num_rows ,t.num_columns  from ALL_TB_TOTAL t where 1=1 ";
         if (null!=tbName && !"".equals(tbName.trim()) ) sql+=" and t.TABLE_NAME like '%"+tbName.toUpperCase()+"%'";
 
         String totalSql = "select count(*)  total from ("+sql +") t";
@@ -98,6 +191,7 @@ public class TbService {
 
         int total =  db.getCount(totalSql,new Object[][]{});
         String newSql =" select * from ( select a.*,rownum rn from (" +sql +" )a where rownum < "+end+") where rn> "+start;
+
         tbCollection = db.excuteQuery(newSql,new Object[][]{});
         map.put("rows",tbCollection);
         map.put("total",total);
@@ -206,7 +300,8 @@ public class TbService {
 
         long queryStart =System.currentTimeMillis();
         //查询某个库下的某个表的所有数据
-        List<Map<String, Object>> data = salverDbUtil.excuteQuery("select * from "+tbName,new Object[][]{});
+        List<Map<String, Object>> data = getDataByMulitThreads(dbName, tbName, masterDataSource, groupSize, masterConn, slaverConn);
+                //salverDbUtil.excuteQuery("select * from "+tbName,new Object[][]{});
         if (data.size()==0){
           return returnMap;
         }

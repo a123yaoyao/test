@@ -360,7 +360,7 @@ public class JDBCUtil {
     }
 
 
-    private Map<String,Object> insertBatch(String tbName, List<Map<String, Object>> dat,PreparedStatement pst,List<Map<String, Object>> tbstruct,Map<String, Object> conditionMap) throws SQLException, IOException {
+    private  Map<String,Object> insertBatch(String tbName, List<Map<String, Object>> dat,PreparedStatement pst,List<Map<String, Object>> tbstruct,Map<String, Object> conditionMap) throws SQLException, IOException {
         /*******************************变量说明*********************************************************************/
         Map<String,Object> returnMap =new HashMap<>();//返回信息
         Map<Integer,String > conditionMapper = (Map<Integer, String>) conditionMap.get("mapper");
@@ -446,7 +446,7 @@ public class JDBCUtil {
             conn.setAutoCommit(false);
             String errMessage ="";
             /*******************循环列表 一条一条插入数据 ********************************/
-            for (int i = 0; i < dat.size(); i++) {
+            /*for (int i = 0; i < dat.size(); i++) {
                 ma = (Map<String, Object>) dat.get(i);
                 int j = 0;
 
@@ -501,7 +501,7 @@ public class JDBCUtil {
                     continue;//执行下一次更新
                 }
             }
-            dat = null;
+            dat = null;*/
            return returnMap;
 
         }

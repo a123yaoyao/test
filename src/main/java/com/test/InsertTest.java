@@ -51,14 +51,18 @@ public class InsertTest {
     }
 
     public static void main(String[] args) throws SQLException {
-        Connection connection = getMasterConnect();
+        long start  =System.currentTimeMillis();
+        List<Map<String,Object>> list = query();
+        long end   = System.currentTimeMillis();
+        System.out.println("query cost "+ ((end-start)/1000)+"s");
+      /*  Connection connection = getMasterConnect();
         String sql =" insert into EAF_TEST(EAF_NAME)  values( ?) ";
         PreparedStatement pst  = connection.prepareStatement(sql);
         pst.setObject(1,"1");
         pst.executeUpdate();
         connection.commit();
         pst.close();
-        connection.close();
+        connection.close();*/
 
  /*           long start =System.currentTimeMillis();
         Connection connection = getSlaverConnect();
@@ -388,7 +392,7 @@ while (set.next()){
 
     private static List<Map<String,Object>> query() throws SQLException {
         Connection connection = getSlaverConnect();
-        String sql ="select * from SYS_EXPORT_SCHEMA_01 where  duplicate ='0' and process_order='-1' and error_count ='29'" ;
+        String sql ="SELECT * FROM BIM_ELEMENT_108_R  where rownum <200000" ;
         ResultSet rs = executeQueryRS(sql,connection);
         ResultSetMetaData rsmd = null;
         // 结果集列数
