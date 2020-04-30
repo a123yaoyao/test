@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "amazeui": "^2.7.0",
-    "jquery": "^2.1.4"
+    "jquery": "^3.5.0"
   },
   "browserify-shim": {
     "jquery": "global:jQuery"
