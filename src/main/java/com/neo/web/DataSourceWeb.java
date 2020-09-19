@@ -27,7 +27,6 @@ public class DataSourceWeb {
     @RequestMapping("/getAllDataSource")
     @ResponseBody
     public Map<String, Object> getAllDataSource() {
-
         return dataSourceService.getAllDataSource();
     }
 
@@ -35,11 +34,7 @@ public class DataSourceWeb {
     @RequestMapping("/addDatasource")
     @ResponseBody
     public Map<String, Object> addDatasource(@RequestBody Map<String,Object> data) {
-
-        //String url_name = request.getParameter("url_name");
-       String url_name = data.get("url_name")+"";
-
-        return dataSourceService.addDatasource(data,url_name);
+        return dataSourceService.addDatasource(data);
     }
 
 }

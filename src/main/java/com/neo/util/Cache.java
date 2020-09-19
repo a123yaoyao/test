@@ -1,5 +1,7 @@
 package com.neo.util;
 
+import com.alibaba.fastjson.JSONObject;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -10,12 +12,15 @@ public class Cache {
      */
     private static Map<String, Map<String,String>> datasource = new HashMap<>();
 
+    private static JSONObject datasourceJson = new JSONObject();
+
     static {
-        datasource = PropertiesUtils.getMap();
+//        datasource = PropertiesUtils.getMap();
+          datasourceJson = DsConfig.getJSONObject();
     }
 
-    public static Map<String, Map<String,String>> getDataSource(){
-        return datasource;
+    public static JSONObject getDataSource(){
+        return datasourceJson;
     }
 
 }

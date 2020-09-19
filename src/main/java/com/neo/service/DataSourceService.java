@@ -1,6 +1,8 @@
 package com.neo.service;
 
+import com.alibaba.fastjson.JSONObject;
 import com.neo.util.Cache;
+import com.neo.util.DsConfig;
 import com.neo.util.PropertiesUtils;
 import org.springframework.stereotype.Service;
 
@@ -13,8 +15,22 @@ import java.util.Map;
 public class DataSourceService {
 
     public   Map<String,Object> getAllDataSource() {
-        Map<String, Map<String,String>> source = Cache.getDataSource();
-       return  getReult(source);
+        Map<String,Object> source = Cache.getDataSource();
+       return  getResMap(source);
+    }
+
+    private Map<String,Object> getResMap(Map<String,Object> source) {
+        Map<String,Object> reuslt = new LinkedHashMap<>();//返回结果集
+        List<Map<String,String> >  list = new LinkedList<>();
+        Map<String,String> newMap =  null;
+        for (String key:source.keySet()) {
+            newMap = (Map<String, String>) source.get(key);
+            newMap.put("url_name",key);
+            list.add(newMap);
+        }
+        reuslt.put("rows",list);
+        reuslt.put("total",source.size());
+        return reuslt;
     }
 
 
@@ -27,7 +43,7 @@ public class DataSourceService {
              for (String oldKey:old.keySet() ) {
                  newMap.put(oldKey.substring(oldKey.lastIndexOf(".")+1),old.get(oldKey));
              }
-
+             newMap.put("url_name",key);
             list.add(newMap);
         }
         reuslt.put("rows",list);
@@ -40,13 +56,10 @@ public class DataSourceService {
        new DataSourceService(). getAllDataSource();
     }
 
-    public Map<String,Object> addDatasource(Map<String,Object> data,String url_name) {
-        Map<String,String> convert = new LinkedHashMap<>();
-        data.remove("url_name");
-        for (String key:data.keySet() ) {
-            convert.put(url_name+"."+key,String.valueOf(data.get(key)));
-        }
-        PropertiesUtils.addProperty(convert);
+    public Map<String,Object> addDatasource(Map<String,Object> data) {
+        Map<String,Object> convert = new LinkedHashMap<>();
+        convert.put(data.get("url_name")+"",data);
+        DsConfig.addProperty(convert);
         return getReult("200","新增成功！");
     }
 
