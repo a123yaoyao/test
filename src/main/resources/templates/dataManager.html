@@ -42,7 +42,7 @@
 <table id="dataTable"  style="margin-top:3px;width:98%;height:98%">
 </table>
 
-<div id="source" class="easyui-dialog" title="新增数据源" closed="true" data-options="iconCls:'icon-save', modal: true"
+<div id="source" class="easyui-dialog" title="数据源" closed="true" data-options="iconCls:'icon-save', modal: true"
      style="width: 400px; height: 400px; padding: 10px; display: none;">
     <form id="ff" method="post">
         <div style="margin-top: 15px;">
@@ -66,6 +66,7 @@
         <input class="easyui-textbox" id="password" style="width:300px">
     </div>
         <button  style="margin-top: 15px;float: right;" id="add" onclick="save()" type="button" class=" but" >保存</button>
+        <button  style="margin-top: 15px;float: right;" id="update" onclick="updateData()" type="button" class=" but" >保存</button>
 
     </form>
 </div>
@@ -109,7 +110,7 @@
                 {field:'username',title:'用户名',align:'center',width:350},
                 {field:'password',title:'密码',align:'center',width:300,sortable:true},
                 {field:'driverClassName',title:'驱动',align:'center',width:310,sortable:true},
-                {field:'url',title:'列数',align:'center',width:310,sortable:true},
+                {field:'url',title:'远程地址',align:'center',width:310,sortable:true},
                 {field:'operate',title:'操作',align:'center',width:$(this).width()*0.1,
                     formatter:function(value, row, index){
                         var str = '<a href="#" onclick="update(\''+row.url_name+'\')" name="opera" class="easyui-linkbutton" >更新</a>';
@@ -135,13 +136,20 @@
             $('#password').textbox('setValue',data.password);
             $('#url').textbox('setValue',data.url);
             $('#url_name').textbox('setValue',data.url_name);
+            $('#source').dialog('open');
+            $('#update').show();
+            $('#add').hide();
 
         });
     }
     
     function add() {
+        $('#update').hide();
+        $('#add').show();
         $('#source').dialog('open');
     }
+
+
 
     /**
      * ajax post提交
@@ -168,6 +176,31 @@
     
     function save() {
         var surl = "../addDatasource";
+        var obj ={};
+        obj.driverClassName = $('#driver').textbox('getValue');
+        obj.username = $('#username').textbox('getValue');
+        obj.password = $('#password').textbox('getValue');
+        obj.url = $('#url').textbox('getValue');
+        obj.url_name=$('#url_name').textbox('getValue');
+        $.ajax({
+            url:surl,
+            type: 'POST',
+            contentType:'application/json',
+            data:JSON.stringify(obj),
+            success:function(data){
+                disLoad();
+                alert(data.msg) ;
+                $('#source').dialog("close",true);
+                find(1, 10);
+            },
+            error:function(data){
+
+            }
+        });
+    }
+
+    function updateData() {
+        var surl = "../updateDatasource";
         var obj ={};
         obj.driverClassName = $('#driver').textbox('getValue');
         obj.username = $('#username').textbox('getValue');

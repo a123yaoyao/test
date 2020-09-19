@@ -27,7 +27,7 @@ public class DataSourceService extends ResultUtil{
      */
     public Map<String,Object> addDatasource(Map<String,Object> data) {
         try {
-            Cache.validateDataSource(data);//校验数据合法性
+            Cache.validateAddDataSource(data);//校验数据合法性
         } catch (Exception e) {
             return new ResultUtil().getResErr(e);
         }
@@ -35,6 +35,18 @@ public class DataSourceService extends ResultUtil{
         convert.put(data.get("url_name")+"",data);
         DsConfig.addProperty(convert);
         return getReult("200","新增成功！");
+    }
+
+    public Map<String,Object> updateDatasource(Map<String,Object> data) {
+        try {
+            Cache.validateUpdateDataSource(data);//校验数据合法性
+        } catch (Exception e) {
+            return new ResultUtil().getResErr(e);
+        }
+        Map<String,Object> convert = new LinkedHashMap<>();
+        convert.put(data.get("url_name")+"",data);
+        DsConfig.addProperty(convert);
+        return getReult("200","修改成功！");
     }
 
 
@@ -45,4 +57,6 @@ public class DataSourceService extends ResultUtil{
         }
         return null;
     }
+
+
 }

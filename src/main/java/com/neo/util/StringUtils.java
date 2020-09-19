@@ -168,6 +168,20 @@ public class StringUtils {
         }
         return result;
     }
+
+
+    public static boolean isBlank(String str) {
+        return str == null || str.trim().isEmpty();
+    }
+
+    public static boolean isNotBlank(String str) {
+        return !isBlank(str);
+    }
+
+    public static boolean containsWhitespace(String str) {
+        return str != null && str.codePoints().anyMatch(Character::isWhitespace);
+    }
+
 }
 
 

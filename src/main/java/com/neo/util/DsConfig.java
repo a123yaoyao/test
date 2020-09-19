@@ -8,17 +8,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 
 public class DsConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(DsConfig.class);
     static String path = "datasource.json";
 
-    private static JSONObject ds;
+    private static LinkedHashMap ds = new LinkedHashMap();
 
     static {
         loadJson();
@@ -27,7 +24,6 @@ public class DsConfig {
 
     synchronized static private void loadJson(){
         logger.info("开始加载datasource.json文件内容.......");
-        ds = new JSONObject();
         BufferedReader br = null;
         try {
             br = new BufferedReader(new InputStreamReader(JSONTest.class.getClassLoader().getResourceAsStream(path)));
@@ -38,7 +34,7 @@ public class DsConfig {
                 line = br.readLine();
             }
 
-            ds = JSONObject.parseObject(sb.toString());
+            ds = JSONObject.parseObject(sb.toString(),LinkedHashMap.class);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -47,11 +43,17 @@ public class DsConfig {
     }
 
     static JSONObject getJSONObject(){
-        return ds;
+        JSONObject resultJson = new JSONObject();
+        Iterator it = ds.keySet().iterator();
+        while (it.hasNext()) {
+            String key = (String) it.next();
+            resultJson.put(key, ds.get(key));
+        }
+        return resultJson;
     }
 
     static Map<String,Object> getMap(){
-        return JSONObject.toJavaObject(ds, Map.class);
+        return ds;
     }
 
 
