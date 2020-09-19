@@ -3,7 +3,10 @@ package com.neo.util;
 
 import org.apache.log4j.Logger;
 
-import java.util.Random;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 //import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -187,6 +190,38 @@ public class ThreadPoolUtils
     }*/
 
 
+    public static void main(String[] args) throws ClassNotFoundException, SQLException {
+       /* Class.forName("com.mysql.jdbc.Driver");
+        Class.forName("oracle.jdbc.driver.OracleDriver");
+        String url = "jdbc:mysql://localhost:3306/test";
+        String username ="root" ;
+        String password = "123";
+        Connection connection1 = DriverManager.getConnection(url,username, password);
+        List<Connection> list = new ArrayList<>();
+        list.add(connection1);
 
+
+        String url1 = "jdbc:oracle:thin:@127.0.0.1:1521/orcl.168.3.5";
+        String usename1 ="hdt" ;
+        String password1 = "hdt";
+        Connection connection2 = DriverManager.getConnection(url1,usename1, password1);
+        list.add(connection2);
+        connection1.prepareStatement("select * from user ");
+
+        connection1.close();
+        connection2.close();*/
+        // connection1.close();
+
+/*        Map<String,Map<String,String>> map = new HashMap();
+        Map<String,String> map1 = new HashMap<>();
+        map.put("1",map1);
+        map1.put("2","3");
+        System.out.println(map);*/
+JdbcConnectionsPool jdbcConnectionsPool = new JdbcConnectionsPool();
+jdbcConnectionsPool.setCurrentConn("hdt");
+Connection conn = jdbcConnectionsPool.getConnection();
+        System.out.println(conn);
+        conn.close();
+    }
 
 }

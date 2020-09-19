@@ -6,11 +6,17 @@ import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.test.JSONTest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 
 import java.io.*;
 import java.util.*;
 
+@Component
 public class DsConfig {
+
+
 
     private static final Logger logger = LoggerFactory.getLogger(DsConfig.class);
     static String path = "datasource.json";
@@ -19,6 +25,10 @@ public class DsConfig {
 
     static {
         loadJson();
+    }
+
+    DsConfig(){
+
     }
 
 
