@@ -37,4 +37,12 @@ public class DataSourceWeb {
         return dataSourceService.addDatasource(data);
     }
 
+    @RequestMapping("/getDataSourceByName")
+    @ResponseBody
+    public Map<String, Object> getDataSourceByName(@RequestBody Map<String,Object> data) {
+        return dataSourceService.getDataSourceByName(data);
+    }
+
+
+
 }

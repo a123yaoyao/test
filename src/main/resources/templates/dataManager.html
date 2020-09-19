@@ -42,8 +42,8 @@
 <table id="dataTable"  style="margin-top:3px;width:98%;height:98%">
 </table>
 
-<div id="roleuserdlg" class="easyui-dialog" title="新增数据源" closed="true" data-options="iconCls:'icon-save', modal: true"
-     style="width: 500px; height: 400px; padding: 10px; display: none;">
+<div id="source" class="easyui-dialog" title="新增数据源" closed="true" data-options="iconCls:'icon-save', modal: true"
+     style="width: 400px; height: 400px; padding: 10px; display: none;">
     <form id="ff" method="post">
         <div style="margin-top: 15px;">
             <label  style="width: 50px;">连接名</label>
@@ -105,13 +105,14 @@
             border : false,
             columns:[[
                 { field:'ck',title:'序号',checkbox:true },
+                {field:'url_name',title:'连接名',align:'center',width:350},
                 {field:'username',title:'用户名',align:'center',width:350},
                 {field:'password',title:'密码',align:'center',width:300,sortable:true},
                 {field:'driverClassName',title:'驱动',align:'center',width:310,sortable:true},
                 {field:'url',title:'列数',align:'center',width:310,sortable:true},
                 {field:'operate',title:'操作',align:'center',width:$(this).width()*0.1,
                     formatter:function(value, row, index){
-                        var str = '<a href="#" onclick="updateOrg(row)" name="opera" class="easyui-linkbutton" >更新</a>';
+                        var str = '<a href="#" onclick="update(\''+row.url_name+'\')" name="opera" class="easyui-linkbutton" >更新</a>';
                         return str;
                     }
                 },
@@ -122,15 +123,53 @@
 
     }
     
+    function update(url_name) {
+        console.log(" url_name: "+url_name);
+        var param = {};
+        param.url_name = url_name;
+        var dataType ="json";
+        sendAjax("../getDataSourceByName",JSON.stringify(param),dataType,function (data) {
+            $('#source').dialog('open');
+            $('#driver').textbox('setValue',data.driverClassName);
+            $('#username').textbox('setValue',data.username);
+            $('#password').textbox('setValue',data.password);
+            $('#url').textbox('setValue',data.url);
+            $('#url_name').textbox('setValue',data.url_name);
+
+        });
+    }
     
     function add() {
-        $('#roleuserdlg').dialog('open');
+        $('#source').dialog('open');
+    }
+
+    /**
+     * ajax post提交
+     * @param url
+     * @param param
+     * @param datat 为html,json,text
+     * @param callback回调函数
+     * @return
+     */
+    function sendAjax(url, param, datat, callback) {
+        $.ajax({
+            type: "post",
+            url: url,
+            data: param,
+            dataType: datat,
+            contentType:'application/json',
+            success: callback,
+            error: function() {
+               // ClosetoastLoading();
+               // errorTip();
+            }
+        });
     }
     
     function save() {
         var surl = "../addDatasource";
         var obj ={};
-        obj.driver = $('#driver').textbox('getValue');
+        obj.driverClassName = $('#driver').textbox('getValue');
         obj.username = $('#username').textbox('getValue');
         obj.password = $('#password').textbox('getValue');
         obj.url = $('#url').textbox('getValue');
@@ -140,14 +179,11 @@
             type: 'POST',
             contentType:'application/json',
             data:JSON.stringify(obj),
-
             success:function(data){
                 disLoad();
-                if(data.err){
-                    alert(data.content) ;
-                    return;
-                }
-                alert("success");
+                alert(data.msg) ;
+                $('#source').dialog("close",true);
+                find(1, 10);
             },
             error:function(data){
 

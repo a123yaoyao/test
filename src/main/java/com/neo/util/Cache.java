@@ -23,4 +23,12 @@ public class Cache {
         return datasourceJson;
     }
 
+    public static boolean validateDataSource(Map<String,Object> data) throws Exception {
+       Map<String,Object> dataMap = (Map) datasourceJson;
+       if (data.containsKey(data.get("url_name"))){
+           throw new Exception("连接名不可重复");
+       }
+       return true;
+    }
+
 }
