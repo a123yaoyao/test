@@ -19,7 +19,7 @@ public class TbDealBO {
         this.addColumns = addColumns;
     }
 
-    public void dealWithTbProblem(){
+    public void dealWithTbProblem() throws SQLException {
         if (tbName.equals("EAF_DMM_METAATTR_L") || tbName.equals("EAF_DMM_METACLASS_L")){
             new JDBCUtil(masterDataSource).executeUpdate("delete from "+tbName+" where eaf_lid is null or eaf_lid !='6BEB598696F4116772AF9E03EFC7E962' ",new Object[][]{});
         }

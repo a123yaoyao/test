@@ -32,6 +32,9 @@ public class JDBCUtil {
     private Statement st = null;
 
     private ResultSet rst = null;
+
+    JdbcConnectionsPool pool = new JdbcConnectionsPool();
+
     /**
      * 构造方法
      *
@@ -42,12 +45,19 @@ public class JDBCUtil {
         conn = connection ;
     }
 
-    public JDBCUtil(String  dbName) {
-        conn = DataSourceHelper.GetConnection(dbName) ;
+    public JDBCUtil(String  dbName) throws SQLException {
+        pool.setCurrentConn(dbName);
+        conn = pool.getConnection();
     }
 
-    public Connection getConn() {
-        return conn;
+    public JDBCUtil() {
+
+    }
+
+    public Connection getConn(String dbName) throws SQLException {
+        if (!conn.isClosed()) return conn;
+        pool.setCurrentConn(dbName);
+        return pool.getConnection();
     }
 
     /**

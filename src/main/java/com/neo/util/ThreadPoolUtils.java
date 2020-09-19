@@ -217,11 +217,9 @@ public class ThreadPoolUtils
         map.put("1",map1);
         map1.put("2","3");
         System.out.println(map);*/
-JdbcConnectionsPool jdbcConnectionsPool = new JdbcConnectionsPool();
-jdbcConnectionsPool.setCurrentConn("hdt");
-Connection conn = jdbcConnectionsPool.getConnection();
-        System.out.println(conn);
-        conn.close();
+
+        List<Map<String, Object>> list =   new JDBCUtil("hdt").excuteQuery(" select * from t_hd_contract ",null);
+        System.out.println(list);
     }
 
 }
