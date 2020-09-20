@@ -218,7 +218,13 @@ public class ThreadPoolUtils
         map1.put("2","3");
         System.out.println(map);*/
 
-        List<Map<String, Object>> list =   new JDBCUtil("hdt").excuteQuery(" select * from t_hd_contract ",null);
+        List<Map<String, Object>> list =   new JDBCUtil("hdt").excuteQuery(" SELECT\n" +
+                "    *\n" +
+                "FROM\n" +
+                "    all_tables\n" +
+                "WHERE\n" +
+                "    OWNER = 'orcl.168.3.5'\n" +
+                "ORDER BY table_name ",null);
         System.out.println(list);
     }
 
