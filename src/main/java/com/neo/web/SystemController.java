@@ -1,6 +1,8 @@
 package com.neo.web;
 
 import com.alibaba.fastjson.JSONObject;
+import com.neo.service.DataSourceService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,6 +14,10 @@ import java.util.*;
 @RequestMapping("/system/table")
 public class SystemController {
 
+
+    @Autowired
+    DataSourceService dataSourceService;
+
     @RequestMapping("/list")
     @CrossOrigin(origins = "*")
     @ResponseBody
@@ -20,7 +26,7 @@ public class SystemController {
         data.put("total",305);
         data.put("pages",31);
         data.put("size",10);
-        List<Map<String,Object>> record = new LinkedList<>();
+        List<Map<String,Object>> record = dataSourceService.getDataSourceByPage();
         Map<String,Object> map = new HashMap<>();
         map.put("TB_NAME","t_hd_reord");
         map.put("id","111");
@@ -36,7 +42,6 @@ public class SystemController {
         jsonObject.put("data",data);
         jsonObject.put("status",status);
         //jsonObject.put("timestamps",timestamps);
-
 
 
 

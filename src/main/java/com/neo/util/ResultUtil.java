@@ -25,17 +25,23 @@ public class ResultUtil {
 
     public Map<String,Object> getResMap(Map<String, Object> source) {
         Map<String,Object> reuslt = new LinkedHashMap<>();//返回结果集
-        List<Map<String,String> > list = new LinkedList<>();
-        Map<String,String> newMap =  null;
-        for (String key:source.keySet()) {
-            newMap = (Map<String, String>) source.get(key);
-            newMap.put("url_name",key);
-            list.add(newMap);
-        }
+        List<Map<String,Object> > list =  getResList(source);
         reuslt.put("rows",list);
         reuslt.put("total",source.size());
         return reuslt;
     }
+    public  List<Map<String,Object> > getResList(Map<String, Object> source) {
+        List<Map<String,Object> > list = new LinkedList<>();
+        Map<String,Object> newMap =  null;
+        for (String key:source.keySet()) {
+            newMap = (Map<String, Object>) source.get(key);
+            newMap.put("url_name",key);
+            list.add(newMap);
+        }
+
+        return list;
+    }
+
 
 
 

@@ -6,6 +6,7 @@ import com.neo.util.ResultUtil;
 import org.springframework.stereotype.Service;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -18,6 +19,15 @@ public class DataSourceService extends ResultUtil{
     public   Map<String,Object> getAllDataSource() {
         Map<String,Object> source = Cache.getDataSource();
        return  getResMap(source);
+    }
+
+    /**
+     * 查询所有数据源分页
+     * @return
+     */
+    public List<Map<String,Object>> getDataSourceByPage() {
+        Map<String,Object> source = Cache.getDataSource();
+        return  getResList(source);
     }
 
     /**
