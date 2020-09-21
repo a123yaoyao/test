@@ -1,0 +1,196 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>数据库合并</title>
+    <link rel="stylesheet" type="text/css" href="../jquery-easyui-1.7.0/themes/default/easyui.css"/>
+    <link rel="stylesheet" type="text/css" href="../jquery-easyui-1.7.0/themes/icon.css"/>
+    <link rel="stylesheet" type="text/css" href="../jquery-easyui-1.7.0/demo/demo.css"/>
+    <script type="text/javascript" src="../jquery-easyui-1.7.0/jquery.min.js"></script>
+    <script type="text/javascript" src="../jquery-easyui-1.7.0/jquery.easyui.min.js"></script>
+
+</head>
+<body >
+
+
+
+<select class="easyui-combobox" panelHeight="auto" style="width:200px" data-options="valueField:'id',
+textField:'text',onChange:uie_dgd_search" id="db">
+
+</select>
+<button  id="me" onclick="merge()" type="button" >合并</button>
+
+<table id="dg"  class="easyui-datagrid" style="width:100%;height:100%" />
+
+
+
+</body>
+<script>
+
+
+
+    $(function(){
+        //查询所有数据源
+        getAllDb();
+        //初始化列表
+        init();
+    });
+    function merge() {
+        var dbName =$('#db').combobox("getValue");
+        var selRows = $('#dg').datagrid('getChecked');
+        if (selRows.length ==0){
+            alert("请选择合并的表名称");
+            return;
+        }
+        load();
+        var obj ={};
+        obj.tbs =selRows;
+        $.ajax({
+            url:'../mergeData',
+            type: 'POST',
+            dataType:'json',
+            data:{
+                "dbName":$('#db').combobox('getValue'),
+                "tbCollection":JSON.stringify(obj),
+            },
+            success:function(data){
+                disLoad();
+                if(data.err){
+                    alert(data.content) ;
+                    return;
+                }
+                var list = data.list;
+
+                var html ='';
+                for(var i=0;i<list.length;i++){
+                    html +=''+list[i].TABLE_NAME+'成功同步'+list[i].INSERT_COUNT+'条数据'
+                }
+                alert(html);
+
+            },
+            error:function(data){
+
+            }
+        });
+
+    }
+
+    function uie_dgd_search() {
+
+        var dbName =$('#db').combobox("getValue");
+
+        var masterDb;
+
+        for (var i=0; i<dbs.length;i++){
+            if (dbs.IS_MASTER == 1 ){
+                masterDb = dbs.id;
+            }
+        }
+        if (dbName == masterDb){
+            $('#me').attr('disabled',"true");
+        }else  $('#me').removeAttr("disabled");
+
+
+        $('#dg').datagrid('reload', {
+            'dbName': $('#db').combobox('getValue')
+        });
+        $('#dg').datagrid("clearSelections"); //清空选中项
+    }
+
+var dbs ;
+
+    function getAllDb() {
+        $.ajax({
+            url:'../getAllByDB',
+            type: 'POST',
+            dataType:'json',
+
+            success:function(data){
+                if(data.err){
+                   alert(data.content) ;
+                   return;
+                }
+                var list = data.list;
+                dbs =list;
+                var masterDb;
+                $('#db').combobox('loadData', list);
+                for (var i = 0; i < list.length; i++) {
+                    if(list[i].IS_MASTER ==1 ){
+                        $('#db').combobox('select',list[i].id);
+                        masterDb = list[i].id;
+                        $('#me').attr('disabled',"true");
+                    };
+                }
+            },
+            error: function (XMLHttpRequest, textStatus, errorThrown) {
+                // 状态码
+                console.log(XMLHttpRequest.status);
+                // 状态
+                console.log(XMLHttpRequest.readyState);
+                // 错误信息
+                console.log(textStatus);
+                alert(textStatus);
+            }
+        });
+    };
+
+
+
+    function init() {
+        $('#dg').datagrid({
+            url:'../getTableByDB',
+            fit: true,
+            fitColumns:false,
+            queryParams: {
+                dbName: $('#db').combobox('getValue')
+            },
+            pageSize:20,
+            cache: false,
+            pageList:[20,50,100,200,500],
+            pagination:true,
+            pagePosition:'bottom',
+            rownumbers : true,
+            singleSelect  :false,
+            remoteSort:true,
+            border : false,
+
+            columns:[[
+                { field:'ck',checkbox:true },
+                {field:'TABLE_NAME',title:'表名',width:150},
+                {field:'NUM_ROWS',title:'行数',width:100,sortable:true},
+                {field:'NUM_COLUMNS',title:'列数',width:110,sortable:true}
+
+            ]],
+            onSelect: function (rowIndex, rowData) {//
+            }
+        });
+
+
+
+    }
+
+
+    //弹出加载层
+    function load() {
+        $("<div class=\"datagrid-mask\"></div>").css({
+            display: "block",
+            width: "100%",
+            height: $(window).height()
+        }).appendTo("body");
+        $("<div class=\"datagrid-mask-msg\"></div>").html("加载中，请稍候。。。").appendTo("body").css({
+            display: "block",
+            left: ($(document.body).outerWidth(true) - 190) / 2,
+            top: ($(window).height() - 45) / 2,
+            height: '40px'
+        });
+    }
+    //取消加载层
+    function disLoad() {
+        $(".datagrid-mask").remove();
+        $(".datagrid-mask-msg").remove();
+    }
+
+
+
+</script>
+
+</html>

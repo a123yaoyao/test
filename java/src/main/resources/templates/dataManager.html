@@ -1,0 +1,272 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>数据库表信息</title>
+    <link rel="icon" type="image/png" href="../i/b.png">
+    <link rel="stylesheet" type="text/css" href="../jquery-easyui-1.7.0/themes/default/easyui.css">
+    <link rel="stylesheet" type="text/css" href="../jquery-easyui-1.7.0/themes/icon.css">
+    <link rel="stylesheet" href="../css/amazeui.min.css"/>
+    <link rel="stylesheet" href="../css/tb-merge.css">
+    <!--  <link rel="stylesheet" href="../css/admin.css">
+     <link rel="stylesheet" href="../tree-master/dist/amazeui.tree.css"/>-->
+    <script type="text/javascript" src="../jquery-easyui-1.7.0/jquery.min.js"></script>
+    <script type="text/javascript" src="../jquery-easyui-1.7.0/jquery.easyui.min.js"></script>
+    <script type="text/javascript" src="../jquery-easyui-1.7.0/locale/easyui-lang-zh_CN.js"></script>
+    <script src="../js/amazeui.js"></script>
+    <script src="../js/app.js"></script>
+</head>
+<style type="text/css">
+
+
+</style>
+<body>
+<!--模态窗口-->
+<div class="am-popup" id="your-modal">
+    <div class="am-popup-inner">
+        <div class="am-popup-hd">
+            <h4 class="am-popup-title">返回信息</h4>
+            <span data-am-modal-close
+                  class="am-close">&times;</span>
+        </div>
+        <div class="am-popup-bd" id="return_message">
+            二人message
+        </div>
+    </div>
+</div>
+<!--工具栏-->
+<div style="padding:10px 5px 15px 40px;">
+    <span style="margin-left: 15px;"><button  id="me" onclick="add()" type="button" class=" but" style="width: 110px;" >新增数据源</button>
+</span>
+</div>
+<!--列表-->
+<table id="dataTable"  style="margin-top:3px;width:98%;height:98%">
+</table>
+
+<div id="source" class="easyui-dialog" title="数据源" closed="true" data-options="iconCls:'icon-save', modal: true"
+     style="width: 400px; height: 400px; padding: 10px; display: none;">
+    <form id="ff" method="post">
+        <div style="margin-top: 15px;">
+            <label  style="width: 50px;">连接名</label>
+            <input class="easyui-textbox" id="url_name" style="width:300px">
+        </div>
+        <div style="margin-top: 15px;">
+            <label  style="width: 50px;">连接</label>
+            <input class="easyui-textbox" id="url" style="width:300px">
+        </div>
+        <div style="margin-top: 15px;">
+            <label  style="width: 50px;">驱动:</label>
+            <input class="easyui-textbox" id="driver" style="width:300px">
+        </div >
+        <div style="margin-top: 15px;">
+            <label  style="width: 50px;">用户名:</label>
+            <input class="easyui-textbox" id="username" style="width:300px">
+        </div>
+        <div style="margin-top: 15px;">
+        <label  style="width: 50px;">密码:</label>
+        <input class="easyui-textbox" id="password" style="width:300px">
+    </div>
+        <button  style="margin-top: 15px;float: right;" id="add" onclick="save()" type="button" class=" but" >保存</button>
+        <button  style="margin-top: 15px;float: right;" id="update" onclick="updateData()" type="button" class=" but" >保存</button>
+
+    </form>
+</div>
+
+
+
+
+
+
+
+
+</body>
+<script>
+    $(document).ready(function() {
+        //查询所有数据源
+        page_init();
+    });
+
+
+
+
+    function page_init() {
+        $("#dataTable").datagrid({
+            url: "../getAllDataSource", //actionName
+            queryParams:{page:1,rows:20},//查询参数
+            loadMsg:"正在加载数据...",
+            rownumbers:true,//查询结果在表格中显示行号
+            fitColumns:true,//列的宽度填满表格，防止下方出现滚动条。
+            page:1,   //初始页码，得在这设置才效果，pagination设置没效果。
+            pagination: true,//分页控件
+            pageSize:20,
+            cache: false,
+            pageList:[20,50,100,200,500],
+            pagePosition:'bottom',
+            singleSelect  :false,
+            remoteSort:true,
+            border : false,
+            columns:[[
+                { field:'ck',title:'序号',checkbox:true },
+                {field:'url_name',title:'连接名',align:'center',width:350},
+                {field:'username',title:'用户名',align:'center',width:350},
+                {field:'password',title:'密码',align:'center',width:300,sortable:true},
+                {field:'driverClassName',title:'驱动',align:'center',width:310,sortable:true},
+                {field:'url',title:'远程地址',align:'center',width:310,sortable:true},
+                {field:'operate',title:'操作',align:'center',width:$(this).width()*0.1,
+                    formatter:function(value, row, index){
+                        var str = '<a href="#" onclick="update(\''+row.url_name+'\')" name="opera" class="easyui-linkbutton" >更新</a>';
+                        return str;
+                    }
+                },
+            ]]
+        });
+
+
+
+    }
+    
+    function update(url_name) {
+        console.log(" url_name: "+url_name);
+        var param = {};
+        param.url_name = url_name;
+        var dataType ="json";
+        sendAjax("../getDataSourceByName",JSON.stringify(param),dataType,function (data) {
+            $('#source').dialog('open');
+            $('#driver').textbox('setValue',data.driverClassName);
+            $('#username').textbox('setValue',data.username);
+            $('#password').textbox('setValue',data.password);
+            $('#url').textbox('setValue',data.url);
+            $('#url_name').textbox('setValue',data.url_name);
+            $('#source').dialog('open');
+            $('#update').show();
+            $('#add').hide();
+
+        });
+    }
+    
+    function add() {
+        $('#update').hide();
+        $('#add').show();
+        $('#source').dialog('open');
+    }
+
+
+
+    /**
+     * ajax post提交
+     * @param url
+     * @param param
+     * @param datat 为html,json,text
+     * @param callback回调函数
+     * @return
+     */
+    function sendAjax(url, param, datat, callback) {
+        $.ajax({
+            type: "post",
+            url: url,
+            data: param,
+            dataType: datat,
+            contentType:'application/json',
+            success: callback,
+            error: function() {
+               // ClosetoastLoading();
+               // errorTip();
+            }
+        });
+    }
+    
+    function save() {
+        var surl = "../addDatasource";
+        var obj ={};
+        obj.driverClassName = $('#driver').textbox('getValue');
+        obj.username = $('#username').textbox('getValue');
+        obj.password = $('#password').textbox('getValue');
+        obj.url = $('#url').textbox('getValue');
+        obj.url_name=$('#url_name').textbox('getValue');
+        $.ajax({
+            url:surl,
+            type: 'POST',
+            contentType:'application/json',
+            data:JSON.stringify(obj),
+            success:function(data){
+                disLoad();
+                alert(data.msg) ;
+                $('#source').dialog("close",true);
+                find(1, 10);
+            },
+            error:function(data){
+
+            }
+        });
+    }
+
+    function updateData() {
+        var surl = "../updateDatasource";
+        var obj ={};
+        obj.driverClassName = $('#driver').textbox('getValue');
+        obj.username = $('#username').textbox('getValue');
+        obj.password = $('#password').textbox('getValue');
+        obj.url = $('#url').textbox('getValue');
+        obj.url_name=$('#url_name').textbox('getValue');
+        $.ajax({
+            url:surl,
+            type: 'POST',
+            contentType:'application/json',
+            data:JSON.stringify(obj),
+            success:function(data){
+                disLoad();
+                alert(data.msg) ;
+                $('#source').dialog("close",true);
+                find(1, 10);
+            },
+            error:function(data){
+
+            }
+        });
+    }
+
+    function find(pageNumber, pageSize)
+    {
+        $("#dataTable").datagrid('getPager').pagination({pageSize : pageSize, pageNumber : pageNumber});//重置
+        $("#dataTable").datagrid("loading"); //加屏蔽
+        $.ajax({
+            type : "POST",
+            dataType : "json",
+            url : "../getAllDataSource",
+            data : {
+                page : pageNumber,
+                rows : pageSize
+            },
+            success : function(data) {
+                $("#dataTable").datagrid('loadData',data);
+                $("#dataTable").datagrid("loaded"); //移除屏蔽
+            },
+            error : function(err) {
+                $.messager.alert('操作提示', '获取信息失败...请联系管理员!', 'error');
+                $("#dataTable").datagrid("loaded"); //移除屏蔽
+            }
+        });
+
+    }
+
+    //弹出加载层
+    function load() {
+        $("<div class=\"datagrid-mask\"></div>").css({
+            display: "block",
+            width: "100%",
+            height: $(window).height()
+        }).appendTo("body");
+        $("<div class=\"datagrid-mask-msg\"></div>").html("加载中，请稍候。。。").appendTo("body").css({
+            display: "block",
+            left: ($(document.body).outerWidth(true) - 190) / 2,
+            top: ($(window).height() - 45) / 2,
+            height: '40px'
+        });
+    }
+    //取消加载层
+    function disLoad() {
+        $(".datagrid-mask").remove();
+        $(".datagrid-mask-msg").remove();
+    }
+
+</script>
+</html>
